@@ -52,6 +52,8 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
+            position: relative;
+            z-index: 100;
         }
 
         .sidebar-header {
@@ -100,6 +102,8 @@
             border: 1px solid #dee2e6;
             padding: 6px;
             vertical-align: top;
+            position: relative;
+            z-index: 50;
         }
 
         .csm-form-table select {
@@ -113,6 +117,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            position: relative;
+            z-index: 1000;
         }
 
         .csm-form-table select:focus {
@@ -121,6 +127,12 @@
 
         .csm-form-table td:last-child select {
             min-width: 100px;
+        }
+
+        /* Ensure dropdown options appear above everything */
+        .csm-form-table select option {
+            z-index: 9999 !important;
+            position: relative;
         }
 
         .csm-form-actions {
@@ -3544,19 +3556,46 @@
                 selects.forEach(select => {
                     // Remove existing listeners to prevent duplicates
                     select.removeEventListener('change', this.handleSelectChange);
-                    // Add new listener
+                    select.removeEventListener('mousedown', this.handleSelectMouseDown);
+                    select.removeEventListener('click', this.handleSelectClick);
+                    
+                    // Add new listeners
                     select.addEventListener('change', this.handleSelectChange.bind(this));
+                    select.addEventListener('mousedown', this.handleSelectMouseDown.bind(this));
+                    select.addEventListener('click', this.handleSelectClick.bind(this));
                 });
 
                 inputs.forEach(input => {
                     // Remove existing listeners to prevent duplicates
                     input.removeEventListener('input', this.handleInputChange);
-                    // Add new listener
+                    input.removeEventListener('mousedown', this.handleInputMouseDown);
+                    input.removeEventListener('click', this.handleInputClick);
+                    
+                    // Add new listeners
                     input.addEventListener('input', this.handleInputChange.bind(this));
+                    input.addEventListener('mousedown', this.handleInputMouseDown.bind(this));
+                    input.addEventListener('click', this.handleInputClick.bind(this));
                 });
             }
 
+            handleSelectMouseDown(e) {
+                e.stopPropagation(); // Prevent map from capturing the event
+            }
+
+            handleSelectClick(e) {
+                e.stopPropagation(); // Prevent map from capturing the event
+            }
+
+            handleInputMouseDown(e) {
+                e.stopPropagation(); // Prevent map from capturing the event
+            }
+
+            handleInputClick(e) {
+                e.stopPropagation(); // Prevent map from capturing the event
+            }
+
             handleSelectChange(e) {
+                e.stopPropagation(); // Prevent map from capturing the event
                 const field = e.target.dataset.field;
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
@@ -3564,6 +3603,7 @@
             }
 
             handleInputChange(e) {
+                e.stopPropagation(); // Prevent map from capturing the event
                 const field = e.target.dataset.field;
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
