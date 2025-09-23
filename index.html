@@ -104,15 +104,23 @@
 
         .csm-form-table select {
             width: 100%;
+            min-width: 80px;
             border: none;
             background: transparent;
             font-size: 12px;
             padding: 3px;
             outline: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .csm-form-table select:focus {
             background-color: #e3f2fd;
+        }
+
+        .csm-form-table td:last-child select {
+            min-width: 100px;
         }
 
         .csm-form-actions {
@@ -822,17 +830,17 @@
                         <table class="csm-form-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 8%;">Hazard ID</th>
-                                    <th style="width: 12%;">Source</th>
-                                    <th style="width: 12%;">Environmental Medium</th>
-                                    <th style="width: 10%;">Health Threat</th>
-                                    <th style="width: 10%;">Exposure Route</th>
-                                    <th style="width: 12%;">Population Affected</th>
-                                    <th style="width: 12%;">Existing Controls</th>
-                                    <th style="width: 12%;">Frequency/Duration</th>
-                                    <th style="width: 8%;">Severity</th>
-                                    <th style="width: 8%;">Probability</th>
-                                    <th style="width: 8%;">Risk</th>
+                                    <th style="width: 7%;">Hazard ID</th>
+                                    <th style="width: 11%;">Source</th>
+                                    <th style="width: 11%;">Environmental Medium</th>
+                                    <th style="width: 9%;">Health Threat</th>
+                                    <th style="width: 9%;">Exposure Route</th>
+                                    <th style="width: 11%;">Population Affected</th>
+                                    <th style="width: 11%;">Existing Controls</th>
+                                    <th style="width: 11%;">Frequency/Duration</th>
+                                    <th style="width: 7%;">Severity</th>
+                                    <th style="width: 7%;">Probability</th>
+                                    <th style="width: 12%;">Risk</th>
                                 </tr>
                             </thead>
                             <tbody id="csmFormBody">
