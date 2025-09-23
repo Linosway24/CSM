@@ -3489,8 +3489,11 @@
                             <option value="">Select Medium</option>
                             <option value="Air" ${row.environmentalMedium === 'Air' ? 'selected' : ''}>Air</option>
                             <option value="Soil" ${row.environmentalMedium === 'Soil' ? 'selected' : ''}>Soil</option>
+                            <option value="Soil/Air" ${row.environmentalMedium === 'Soil/Air' ? 'selected' : ''}>Soil/Air</option>
+                            <option value="Soil/Groundwater" ${row.environmentalMedium === 'Soil/Groundwater' ? 'selected' : ''}>Soil/Groundwater</option>
                             <option value="Groundwater" ${row.environmentalMedium === 'Groundwater' ? 'selected' : ''}>Groundwater</option>
                             <option value="Surface Water" ${row.environmentalMedium === 'Surface Water' ? 'selected' : ''}>Surface Water</option>
+                            <option value="Water" ${row.environmentalMedium === 'Water' ? 'selected' : ''}>Water</option>
                             <option value="Sediment" ${row.environmentalMedium === 'Sediment' ? 'selected' : ''}>Sediment</option>
                             <option value="Biota" ${row.environmentalMedium === 'Biota' ? 'selected' : ''}>Biota</option>
                             <option value="Auditory" ${row.environmentalMedium === 'Auditory' ? 'selected' : ''}>Auditory</option>
@@ -3501,6 +3504,13 @@
                             <option value="Particulate" ${row.environmentalMedium === 'Particulate' ? 'selected' : ''}>Particulate</option>
                             <option value="Leachate" ${row.environmentalMedium === 'Leachate' ? 'selected' : ''}>Leachate</option>
                             <option value="Runoff" ${row.environmentalMedium === 'Runoff' ? 'selected' : ''}>Runoff</option>
+                            <option value="Air/Surface" ${row.environmentalMedium === 'Air/Surface' ? 'selected' : ''}>Air/Surface</option>
+                            <option value="Air/Surfaces" ${row.environmentalMedium === 'Air/Surfaces' ? 'selected' : ''}>Air/Surfaces</option>
+                            <option value="Soil/Dust" ${row.environmentalMedium === 'Soil/Dust' ? 'selected' : ''}>Soil/Dust</option>
+                            <option value="Soil/Surfaces" ${row.environmentalMedium === 'Soil/Surfaces' ? 'selected' : ''}>Soil/Surfaces</option>
+                            <option value="Surfaces" ${row.environmentalMedium === 'Surfaces' ? 'selected' : ''}>Surfaces</option>
+                            <option value="Radiation" ${row.environmentalMedium === 'Radiation' ? 'selected' : ''}>Radiation</option>
+                            <option value="Air/Biological" ${row.environmentalMedium === 'Air/Biological' ? 'selected' : ''}>Air/Biological</option>
                         </select></td>
                         <td><select data-field="healthThreat" data-index="${index}">
                             <option value="">Select Threat</option>
@@ -3524,6 +3534,29 @@
                             <option value="Lead Exposure" ${row.healthThreat === 'Lead Exposure' ? 'selected' : ''}>Lead Exposure</option>
                             <option value="Asbestos" ${row.healthThreat === 'Asbestos' ? 'selected' : ''}>Asbestos</option>
                             <option value="Chemical" ${row.healthThreat === 'Chemical' ? 'selected' : ''}>Chemical</option>
+                            <option value="Benzene exposure" ${row.healthThreat === 'Benzene exposure' ? 'selected' : ''}>Benzene exposure</option>
+                            <option value="Pathogens, nutrients" ${row.healthThreat === 'Pathogens, nutrients' ? 'selected' : ''}>Pathogens, nutrients</option>
+                            <option value="PM2.5" ${row.healthThreat === 'PM2.5' ? 'selected' : ''}>PM2.5</option>
+                            <option value="Lead, noise" ${row.healthThreat === 'Lead, noise' ? 'selected' : ''}>Lead, noise</option>
+                            <option value="VOC vapor, spills" ${row.healthThreat === 'VOC vapor, spills' ? 'selected' : ''}>VOC vapor, spills</option>
+                            <option value="Propylene glycol" ${row.healthThreat === 'Propylene glycol' ? 'selected' : ''}>Propylene glycol</option>
+                            <option value="Mold, dust" ${row.healthThreat === 'Mold, dust' ? 'selected' : ''}>Mold, dust</option>
+                            <option value="Asphyxiation" ${row.healthThreat === 'Asphyxiation' ? 'selected' : ''}>Asphyxiation</option>
+                            <option value="Leachate (VOCs, metals)" ${row.healthThreat === 'Leachate (VOCs, metals)' ? 'selected' : ''}>Leachate (VOCs, metals)</option>
+                            <option value="Acid mist, Pb dust" ${row.healthThreat === 'Acid mist, Pb dust' ? 'selected' : ''}>Acid mist, Pb dust</option>
+                            <option value="RF hazard" ${row.healthThreat === 'RF hazard' ? 'selected' : ''}>RF hazard</option>
+                            <option value="Pesticide residues" ${row.healthThreat === 'Pesticide residues' ? 'selected' : ''}>Pesticide residues</option>
+                            <option value="Mold spores, heat stress" ${row.healthThreat === 'Mold spores, heat stress' ? 'selected' : ''}>Mold spores, heat stress</option>
+                            <option value="Toluene, xylene" ${row.healthThreat === 'Toluene, xylene' ? 'selected' : ''}>Toluene, xylene</option>
+                            <option value="Corrosives, toxics" ${row.healthThreat === 'Corrosives, toxics' ? 'selected' : ''}>Corrosives, toxics</option>
+                            <option value="Solvent vapors" ${row.healthThreat === 'Solvent vapors' ? 'selected' : ''}>Solvent vapors</option>
+                            <option value="CO, particulates" ${row.healthThreat === 'CO, particulates' ? 'selected' : ''}>CO, particulates</option>
+                            <option value="Valley fever (fungal spores)" ${row.healthThreat === 'Valley fever (fungal spores)' ? 'selected' : ''}>Valley fever (fungal spores)</option>
+                            <option value="Ionizing radiation" ${row.healthThreat === 'Ionizing radiation' ? 'selected' : ''}>Ionizing radiation</option>
+                            <option value="Drip leaks" ${row.healthThreat === 'Drip leaks' ? 'selected' : ''}>Drip leaks</option>
+                            <option value="Chlorine residual" ${row.healthThreat === 'Chlorine residual' ? 'selected' : ''}>Chlorine residual</option>
+                            <option value="Vector-borne disease" ${row.healthThreat === 'Vector-borne disease' ? 'selected' : ''}>Vector-borne disease</option>
+                            <option value="Assessment required" ${row.healthThreat === 'Assessment required' ? 'selected' : ''}>Assessment required</option>
                         </select></td>
                         <td><select data-field="exposureRoute" data-index="${index}">
                             <option value="">Select Route</option>
@@ -3536,7 +3569,12 @@
                             <option value="Ocular" ${row.exposureRoute === 'Ocular' ? 'selected' : ''}>Ocular</option>
                             <option value="Injection" ${row.exposureRoute === 'Injection' ? 'selected' : ''}>Injection</option>
                             <option value="Absorption" ${row.exposureRoute === 'Absorption' ? 'selected' : ''}>Absorption</option>
-                            <option value="Inhalation + Dermal" ${row.exposureRoute === 'Inhalation + Dermal' ? 'selected' : ''}>Inhalation + Dermal</option>
+                            <option value="Inhalation, Dermal" ${row.exposureRoute === 'Inhalation, Dermal' ? 'selected' : ''}>Inhalation, Dermal</option>
+                            <option value="Ingestion, Dermal" ${row.exposureRoute === 'Ingestion, Dermal' ? 'selected' : ''}>Ingestion, Dermal</option>
+                            <option value="Inhalation, Ingestion" ${row.exposureRoute === 'Inhalation, Ingestion' ? 'selected' : ''}>Inhalation, Ingestion</option>
+                            <option value="Dermal, Inhalation" ${row.exposureRoute === 'Dermal, Inhalation' ? 'selected' : ''}>Dermal, Inhalation</option>
+                            <option value="External" ${row.exposureRoute === 'External' ? 'selected' : ''}>External</option>
+                            <option value="Insect bites" ${row.exposureRoute === 'Insect bites' ? 'selected' : ''}>Insect bites</option>
                             <option value="Multiple Routes" ${row.exposureRoute === 'Multiple Routes' ? 'selected' : ''}>Multiple Routes</option>
                         </select></td>
                         <td><select data-field="populationAffected" data-index="${index}">
@@ -3560,6 +3598,29 @@
                             <option value="Immunocompromised" ${row.populationAffected === 'Immunocompromised' ? 'selected' : ''}>Immunocompromised</option>
                             <option value="Asthmatics" ${row.populationAffected === 'Asthmatics' ? 'selected' : ''}>Asthmatics</option>
                             <option value="Off-Base Residents" ${row.populationAffected === 'Off-Base Residents' ? 'selected' : ''}>Off-Base Residents</option>
+                            <option value="Firefighters, POL" ${row.populationAffected === 'Firefighters, POL' ? 'selected' : ''}>Firefighters, POL</option>
+                            <option value="Downstream community" ${row.populationAffected === 'Downstream community' ? 'selected' : ''}>Downstream community</option>
+                            <option value="All base population" ${row.populationAffected === 'All base population' ? 'selected' : ''}>All base population</option>
+                            <option value="Instructors, trainees" ${row.populationAffected === 'Instructors, trainees' ? 'selected' : ''}>Instructors, trainees</option>
+                            <option value="POL, Drivers" ${row.populationAffected === 'POL, Drivers' ? 'selected' : ''}>POL, Drivers</option>
+                            <option value="Aquatic life, public" ${row.populationAffected === 'Aquatic life, public' ? 'selected' : ''}>Aquatic life, public</option>
+                            <option value="Logistics workers" ${row.populationAffected === 'Logistics workers' ? 'selected' : ''}>Logistics workers</option>
+                            <option value="Cryo techs" ${row.populationAffected === 'Cryo techs' ? 'selected' : ''}>Cryo techs</option>
+                            <option value="Community well users" ${row.populationAffected === 'Community well users' ? 'selected' : ''}>Community well users</option>
+                            <option value="Civil Engineers" ${row.populationAffected === 'Civil Engineers' ? 'selected' : ''}>Civil Engineers</option>
+                            <option value="Comm technicians" ${row.populationAffected === 'Comm technicians' ? 'selected' : ''}>Comm technicians</option>
+                            <option value="Shoppers, workers" ${row.populationAffected === 'Shoppers, workers' ? 'selected' : ''}>Shoppers, workers</option>
+                            <option value="Athletes" ${row.populationAffected === 'Athletes' ? 'selected' : ''}>Athletes</option>
+                            <option value="Painters" ${row.populationAffected === 'Painters' ? 'selected' : ''}>Painters</option>
+                            <option value="Lab staff" ${row.populationAffected === 'Lab staff' ? 'selected' : ''}>Lab staff</option>
+                            <option value="Maintainers" ${row.populationAffected === 'Maintainers' ? 'selected' : ''}>Maintainers</option>
+                            <option value="Commuters, gate guards" ${row.populationAffected === 'Commuters, gate guards' ? 'selected' : ''}>Commuters, gate guards</option>
+                            <option value="Trainees" ${row.populationAffected === 'Trainees' ? 'selected' : ''}>Trainees</option>
+                            <option value="Staff, patients" ${row.populationAffected === 'Staff, patients' ? 'selected' : ''}>Staff, patients</option>
+                            <option value="CE, HAZWASTE" ${row.populationAffected === 'CE, HAZWASTE' ? 'selected' : ''}>CE, HAZWASTE</option>
+                            <option value="All base" ${row.populationAffected === 'All base' ? 'selected' : ''}>All base</option>
+                            <option value="Outdoor personnel" ${row.populationAffected === 'Outdoor personnel' ? 'selected' : ''}>Outdoor personnel</option>
+                            <option value="Base personnel" ${row.populationAffected === 'Base personnel' ? 'selected' : ''}>Base personnel</option>
                         </select></td>
                         <td><select data-field="existingControls" data-index="${index}">
                             <option value="">Select Controls</option>
