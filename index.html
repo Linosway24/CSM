@@ -236,7 +236,7 @@
         .info-panel {
             position: absolute;
             top: 20px;
-            left: 320px;
+            left: 20px;
             width: 300px;
             background: white;
             border-radius: 8px;
@@ -2854,27 +2854,27 @@
                                     screenPosition = null; // Will trigger fallback positioning
                                 }
                                 if (screenPosition) {
-                                    // Position info box 250px to the right of the entity
-                                    clickInfoBox.style.left = (screenPosition.x + 250) + 'px';
+                                    // Position info box 250px to the left of the entity
+                                    clickInfoBox.style.left = (screenPosition.x - 250) + 'px';
                                     clickInfoBox.style.top = (screenPosition.y - 50) + 'px'; // Center vertically
                                     clickInfoBox.style.right = 'auto'; // Remove right positioning
                                 } else {
-                                    // Fallback: position in top-right corner below title bar area
-                                    clickInfoBox.style.left = 'auto';
+                                    // Fallback: position in top-left corner below title bar area
+                                    clickInfoBox.style.left = '20px';
                                     clickInfoBox.style.top = '120px';
-                                    clickInfoBox.style.right = '20px';
+                                    clickInfoBox.style.right = 'auto';
                                 }
                             } else {
-                                // Fallback: position in top-right corner below title bar area
-                                clickInfoBox.style.left = 'auto';
+                                // Fallback: position in top-left corner below title bar area
+                                clickInfoBox.style.left = '20px';
                                 clickInfoBox.style.top = '120px';
-                                clickInfoBox.style.right = '20px';
+                                clickInfoBox.style.right = 'auto';
                             }
                         } else {
-                            // Fallback: position in top-right corner below title bar area
-                            clickInfoBox.style.left = 'auto';
+                            // Fallback: position in top-left corner below title bar area
+                            clickInfoBox.style.left = '20px';
                             clickInfoBox.style.top = '120px';
-                            clickInfoBox.style.right = '20px';
+                            clickInfoBox.style.right = 'auto';
                         }
                         
                         // Show the info box
