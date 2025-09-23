@@ -863,7 +863,7 @@
                     <div class="csm-form-actions">
                         <button class="csm-btn csm-btn-primary" id="addHazardRow">Add Hazard</button>
                         <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
-                        <button class="csm-btn csm-btn-primary" id="exportCSM">Export CSM</button>
+                        <button class="csm-btn csm-btn-primary" id="checkCSM">Check CSM</button>
                     </div>
                 </div>
         </div>
@@ -3419,8 +3419,8 @@
                     this.clearForm();
                 });
 
-                document.getElementById('exportCSM').addEventListener('click', () => {
-                    this.exportCSM();
+                document.getElementById('checkCSM').addEventListener('click', () => {
+                    this.checkCSM();
                 });
             }
 
@@ -3724,15 +3724,243 @@
                 this.addInitialRow();
             }
 
-            exportCSM() {
-                const csv = this.generateCSV();
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'csm_data.csv';
-                a.click();
-                window.URL.revokeObjectURL(url);
+            checkCSM() {
+                // Reference CSM data (correct answers)
+                const referenceData = [
+                    {
+                        hazardId: 1,
+                        source: 'Engine Testing Pad',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'Respiratory',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Workers',
+                        existingControls: 'PPE',
+                        frequencyDuration: 'Daily',
+                        severity: 'High',
+                        probability: 'High',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 2,
+                        source: 'Aircraft Fuel Tanks',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Chemical',
+                        exposureRoute: 'Dermal',
+                        populationAffected: 'Workers',
+                        existingControls: 'Containment',
+                        frequencyDuration: 'Continuous',
+                        severity: 'High',
+                        probability: 'Medium',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 3,
+                        source: 'Legacy Burn Pit',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Chemical',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Workers',
+                        existingControls: 'Monitoring',
+                        frequencyDuration: 'Historical',
+                        severity: 'Medium',
+                        probability: 'Low',
+                        risk: 'Medium'
+                    }
+                ];
+
+                const results = this.compareWithReference(referenceData);
+                this.displayCheckResults(results);
+            }
+
+            compareWithReference(referenceData) {
+                const results = {
+                    correct: 0,
+                    incorrect: 0,
+                    missing: 0,
+                    total: 0,
+                    details: []
+                };
+
+                // Compare each student row with reference data
+                this.hazardRows.forEach((studentRow, index) => {
+                    if (!studentRow.source || studentRow.source === '') {
+                        results.missing++;
+                        results.details.push({
+                            row: index + 1,
+                            status: 'missing',
+                            message: 'No data entered'
+                        });
+                        return;
+                    }
+
+                    // Find matching reference data by source
+                    const referenceRow = referenceData.find(ref => 
+                        ref.source.toLowerCase() === studentRow.source.toLowerCase()
+                    );
+
+                    if (!referenceRow) {
+                        results.incorrect++;
+                        results.details.push({
+                            row: index + 1,
+                            status: 'incorrect',
+                            message: `Unknown source: ${studentRow.source}`
+                        });
+                        return;
+                    }
+
+                    // Compare each field
+                    const fields = [
+                        'environmentalMedium', 'healthThreat', 'exposureRoute',
+                        'populationAffected', 'existingControls', 'frequencyDuration',
+                        'severity', 'probability', 'risk'
+                    ];
+
+                    let rowCorrect = 0;
+                    let rowTotal = fields.length;
+                    const fieldResults = [];
+
+                    fields.forEach(field => {
+                        const studentValue = studentRow[field] || '';
+                        const referenceValue = referenceRow[field] || '';
+                        
+                        if (studentValue.toLowerCase() === referenceValue.toLowerCase()) {
+                            rowCorrect++;
+                            fieldResults.push({ field, status: 'correct', value: studentValue });
+                        } else {
+                            fieldResults.push({ 
+                                field, 
+                                status: 'incorrect', 
+                                student: studentValue, 
+                                reference: referenceValue 
+                            });
+                        }
+                    });
+
+                    if (rowCorrect === rowTotal) {
+                        results.correct++;
+                        results.details.push({
+                            row: index + 1,
+                            status: 'correct',
+                            message: 'All fields correct',
+                            source: studentRow.source
+                        });
+                    } else {
+                        results.incorrect++;
+                        results.details.push({
+                            row: index + 1,
+                            status: 'partial',
+                            message: `${rowCorrect}/${rowTotal} fields correct`,
+                            source: studentRow.source,
+                            fieldResults: fieldResults
+                        });
+                    }
+
+                    results.total++;
+                });
+
+                return results;
+            }
+
+            displayCheckResults(results) {
+                // Create modal with results
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                `;
+
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    max-width: 600px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                `;
+
+                const score = results.total > 0 ? Math.round((results.correct / results.total) * 100) : 0;
+                const scoreColor = score >= 80 ? '#28a745' : score >= 60 ? '#ffc107' : '#dc3545';
+
+                content.innerHTML = `
+                    <h2 style="margin-top: 0; color: #333;">CSM Check Results</h2>
+                    <div style="text-align: center; margin: 1rem 0;">
+                        <div style="font-size: 2rem; font-weight: bold; color: ${scoreColor};">${score}%</div>
+                        <div style="color: #666;">Overall Score</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                        <div style="text-align: center; padding: 1rem; background: #d4edda; border-radius: 4px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #155724;">${results.correct}</div>
+                            <div style="color: #155724;">Correct</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #fff3cd; border-radius: 4px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #856404;">${results.incorrect}</div>
+                            <div style="color: #856404;">Incorrect</div>
+                        </div>
+                        <div style="text-align: center; padding: 1rem; background: #f8d7da; border-radius: 4px;">
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #721c24;">${results.missing}</div>
+                            <div style="color: #721c24;">Missing</div>
+                        </div>
+                    </div>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${results.details.map(detail => `
+                            <div style="padding: 0.5rem; margin: 0.25rem 0; border-left: 4px solid ${
+                                detail.status === 'correct' ? '#28a745' : 
+                                detail.status === 'partial' ? '#ffc107' : '#dc3545'
+                            }; background: #f8f9fa;">
+                                <strong>Row ${detail.row}:</strong> ${detail.message}
+                                ${detail.source ? `<br><small>Source: ${detail.source}</small>` : ''}
+                                ${detail.fieldResults ? `
+                                    <details style="margin-top: 0.5rem;">
+                                        <summary>Field Details</summary>
+                                        ${detail.fieldResults.map(field => `
+                                            <div style="margin: 0.25rem 0; padding: 0.25rem; background: ${
+                                                field.status === 'correct' ? '#d4edda' : '#f8d7da'
+                                            }; border-radius: 3px;">
+                                                <strong>${field.field}:</strong> 
+                                                ${field.status === 'correct' ? 
+                                                    `✓ ${field.value}` : 
+                                                    `✗ Your: "${field.student}" | Correct: "${field.reference}"`
+                                                }
+                                            </div>
+                                        `).join('')}
+                                    </details>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <button onclick="this.closest('.modal').remove()" style="
+                            background: #007bff;
+                            color: white;
+                            border: none;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 1rem;
+                        ">Close</button>
+                    </div>
+                `;
+
+                modal.className = 'modal';
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+
+                // Close modal when clicking outside
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
             }
 
             generateCSV() {
