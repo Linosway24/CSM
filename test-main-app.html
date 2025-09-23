@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEHSA Interactive Hazard Map - Test</title>
+    
+    <!-- Load CesiumJS from CDN -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 80px);
+        }
+
+        .control-panel {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #ddd;
+            padding: 1rem;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background-color: #2c3e50;
+        }
+
+        .cesium-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>OEHSA Interactive Hazard Map - Test</h1>
+            <p>Testing Google Photorealistic 3D Tiles</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h3>Test Panel</h3>
+                <p>This is a simplified version of your main app to test Google 3D Tiles.</p>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="cesiumContainer" class="cesium-container"></div>
+                
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Loading Google Photorealistic 3D Tiles...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple test version of your main app
+        class TestApp {
+            constructor() {
+                this.viewer = null;
+                this.tileset = null;
+                
+                // Configuration
+                this.config = {
+                    cesiumToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhMzg4YjBkOC0wMGUwLTRjMzMtODZjMy05NDA0NGYyMzIzZGEiLCJpZCI6MzI0MzMxLCJpYXQiOjE3NTc5NjQxMDh9.OSWvv6a8r1wlWVgCf9QvHSIhNIBTMqWukie1hvCEpJ8',
+                    initialPosition: {
+                        longitude: -111.9731,
+                        latitude: 41.1234,
+                        height: 2000
+                    }
+                };
+            }
+
+            async init() {
+                try {
+                    console.log('Initializing Test App...');
+                    
+                    // Show loading indicator
+                    this.showLoading(true);
+                    
+                    // Initialize Cesium viewer
+                    await this.initializeCesium();
+                    
+                    // Hide loading indicator
+                    this.showLoading(false);
+                    
+                    console.log('Test App initialized successfully');
+                    
+                } catch (error) {
+                    console.error('Failed to initialize Test App:', error);
+                    this.showError('Failed to initialize the test app. Please refresh the page.');
+                }
+            }
+
+            showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator) {
+                    if (show) {
+                        loadingIndicator.style.display = 'flex';
+                    } else {
+                        loadingIndicator.style.display = 'none';
+                    }
+                }
+            }
+
+            showError(message) {
+                console.error(message);
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator) {
+                    loadingIndicator.innerHTML = `
+                        <div class="spinner" style="border-color: #e74c3c;"></div>
+                        <p style="color: #e74c3c;">Error: ${message}</p>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                    `;
+                }
+            }
+
+            async initializeCesium() {
+                // Check if Cesium is loaded
+                if (typeof Cesium === 'undefined') {
+                    throw new Error('CesiumJS library not loaded. Please check your internet connection.');
+                }
+                
+                // Set Cesium base URL for CDN
+                window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/';
+                
+                // Configure Cesium
+                Cesium.Ion.defaultAccessToken = this.config.cesiumToken;
+                
+                // Initialize viewer with minimal configuration
+                this.viewer = new Cesium.Viewer('cesiumContainer', {
+                    homeButton: false,
+                    sceneModePicker: false,
+                    baseLayerPicker: false,
+                    navigationHelpButton: false,
+                    animation: false,
+                    timeline: false,
+                    fullscreenButton: false,
+                    vrButton: false,
+                    selectionIndicator: false
+                });
+
+                // Set initial camera position
+                this.viewer.camera.setView({
+                    destination: Cesium.Cartesian3.fromDegrees(
+                        this.config.initialPosition.longitude,
+                        this.config.initialPosition.latitude,
+                        this.config.initialPosition.height
+                    ),
+                    orientation: {
+                        heading: 0.0,
+                        pitch: Cesium.Math.toRadians(-45),
+                        roll: 0.0
+                    }
+                });
+
+                // Configure basic scene settings
+                this.viewer.scene.globe.enableLighting = true;
+                this.viewer.scene.skyAtmosphere.show = true;
+                
+                // Configure camera controls
+                this.viewer.scene.screenSpaceCameraController.minimumZoomDistance = 10.0;
+                this.viewer.scene.screenSpaceCameraController.maximumZoomDistance = 20000000.0;
+                
+                // Load Google Photorealistic 3D Tiles
+                await this.loadGoogle3DTiles();
+            }
+
+            async loadGoogle3DTiles() {
+                try {
+                    console.log('Loading Google Photorealistic 3D Tiles...');
+                    
+                    // Load Google Photorealistic 3D Tiles through Cesium Ion
+                    this.tileset = await Cesium.createGooglePhotorealistic3DTileset();
+                    this.viewer.scene.primitives.add(this.tileset);
+                    console.log('Google Photorealistic 3D Tiles loaded successfully');
+                    
+                    // Add error handling for the tileset
+                    this.tileset.readyPromise.then(function(tileset) {
+                        console.log('Tileset ready:', tileset);
+                    }).otherwise(function(error) {
+                        console.error('Tileset ready error:', error);
+                    });
+                    
+                } catch (error) {
+                    console.warn('Failed to load Google Photorealistic 3D Tiles:', error);
+                    console.log('Falling back to standard imagery...');
+                    
+                    // Fallback to Cesium World Imagery
+                    try {
+                        const imageryProvider = new Cesium.IonImageryProvider({ assetId: 1 });
+                        this.viewer.scene.globe.imageryLayers.removeAll();
+                        this.viewer.scene.globe.imageryLayers.addImageryProvider(imageryProvider);
+                        console.log('Cesium World Imagery loaded as fallback');
+                    } catch (fallbackError) {
+                        console.error('Fallback imagery also failed:', fallbackError);
+                    }
+                }
+            }
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new TestApp();
+            app.init();
+        });
+    </script>
+</body>
+</html>

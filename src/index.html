@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEHSA Interactive Hazard Map</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>OEHSA Interactive Hazard Map</h1>
+            <p>Environmental Hazard Analysis Training Module</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Control Panel -->
+            <div class="control-panel" id="controlPanel">
+                <div class="panel-section">
+                    <h3>Hazard Filters</h3>
+                    
+                    <!-- Hazard Type Filter -->
+                    <div class="filter-group">
+                        <h4>Hazard Type</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="chemical" checked> Chemical</label>
+                            <label><input type="checkbox" value="biological" checked> Biological</label>
+                            <label><input type="checkbox" value="radiological" checked> Radiological</label>
+                            <label><input type="checkbox" value="nuclear" checked> Nuclear</label>
+                            <label><input type="checkbox" value="environmental" checked> Environmental</label>
+                            <label><input type="checkbox" value="physical" checked> Physical</label>
+                        </div>
+                    </div>
+
+                    <!-- Environmental Medium Filter -->
+                    <div class="filter-group">
+                        <h4>Environmental Medium</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="air" checked> Air</label>
+                            <label><input type="checkbox" value="water" checked> Water</label>
+                            <label><input type="checkbox" value="soil" checked> Soil</label>
+                            <label><input type="checkbox" value="groundwater" checked> Groundwater</label>
+                        </div>
+                    </div>
+
+                    <!-- Severity Filter -->
+                    <div class="filter-group">
+                        <h4>Severity Level</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="1" checked> Level 1</label>
+                            <label><input type="checkbox" value="2" checked> Level 2</label>
+                            <label><input type="checkbox" value="3" checked> Level 3</label>
+                            <label><input type="checkbox" value="4" checked> Level 4</label>
+                            <label><input type="checkbox" value="5" checked> Level 5</label>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls">
+                        <button id="clearFilters" class="btn btn-secondary">Clear All Filters</button>
+                        <div class="hazard-count">
+                            <span id="hazardCount">0</span> hazards visible
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="panel-section">
+                    <h3>Legend</h3>
+                    <div id="legend" class="legend">
+                        <!-- Legend will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="cesiumContainer" class="cesium-container"></div>
+                
+                <!-- Map Controls -->
+                <div class="map-controls">
+                    <button id="zoomIn" class="control-btn" title="Zoom In">+</button>
+                    <button id="zoomOut" class="control-btn" title="Zoom Out">-</button>
+                    <button id="resetView" class="control-btn" title="Reset View">⌂</button>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Loading map data...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div id="infoPanel" class="info-panel hidden">
+            <div class="info-header">
+                <h3 id="infoTitle">Hazard Information</h3>
+                <button id="closeInfo" class="close-btn">&times;</button>
+            </div>
+            <div class="info-content">
+                <div class="info-item">
+                    <label>Type:</label>
+                    <span id="infoType">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Location:</label>
+                    <span id="infoLocation">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Severity:</label>
+                    <span id="infoSeverity">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Environmental Medium:</label>
+                    <span id="infoMedium">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Bubble (for hover) -->
+        <div id="infoBubble" class="info-bubble hidden">
+            <div class="bubble-content">
+                <strong id="bubbleType">-</strong>
+                <span id="bubbleSeverity">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts will be injected by webpack -->
+</body>
+</html>

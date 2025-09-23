@@ -1,0 +1,42 @@
+{
+  "name": "oehsa-interactive-hazard-map",
+  "version": "1.0.0",
+  "description": "CesiumJS-powered interactive hazard map for OEHSA training module",
+  "main": "src/js/main.js",
+  "scripts": {
+    "dev": "webpack serve --mode development",
+    "build": "webpack --mode production",
+    "start": "python3 -m http.server 8000",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "cesium",
+    "3d",
+    "hazard",
+    "map",
+    "oehsa",
+    "training",
+    "geojson"
+  ],
+  "author": "OEHSA Training Team",
+  "license": "MIT",
+  "dependencies": {
+    "cesium": "^1.111.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1",
+    "css-loader": "^6.8.1",
+    "style-loader": "^3.3.3",
+    "file-loader": "^6.2.0",
+    "url-loader": "^4.1.1",
+    "copy-webpack-plugin": "^11.0.0",
+    "html-webpack-plugin": "^5.5.3"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

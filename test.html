@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEHSA Hazard Map - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .status {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .next-steps {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        ul {
+            margin: 10px 0;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OEHSA Interactive Hazard Map</h1>
+        
+        <div class="status">
+            <h3>✅ Server is Running!</h3>
+            <p>The Python HTTP server is successfully serving files from the project directory.</p>
+        </div>
+
+        <h2>Project Status</h2>
+        <p><strong>Task 1.0 - Project Setup and CesiumJS Integration:</strong> ✅ Complete</p>
+        
+        <h3>What's Been Created:</h3>
+        <ul>
+            <li>✅ Project directory structure (src/js/, src/css/, src/data/, src/assets/)</li>
+            <li>✅ package.json with CesiumJS and build dependencies</li>
+            <li>✅ webpack.config.js for bundling</li>
+            <li>✅ HTML structure with Cesium container and UI elements</li>
+            <li>✅ JavaScript modules (main.js, mapManager.js, hazardManager.js, filterManager.js, uiManager.js)</li>
+            <li>✅ CSS styling for responsive layout</li>
+            <li>✅ README.md with setup instructions</li>
+        </ul>
+
+        <div class="next-steps">
+            <h3>Next Steps to See the Map:</h3>
+            <ol>
+                <li><strong>Get Cesium Token:</strong> Visit <a href="https://cesium.com/ion/" target="_blank">cesium.com/ion</a> and get a free token</li>
+                <li><strong>Update Token:</strong> Replace 'your-cesium-token-here' in src/js/main.js</li>
+                <li><strong>Add Data:</strong> Place your Hill Air Force Vectors.geojson file in src/data/</li>
+                <li><strong>Install Dependencies:</strong> Run <code>npm install</code> (when npm issue is resolved)</li>
+                <li><strong>Build & Run:</strong> Run <code>npm run dev</code> to start the development server</li>
+            </ol>
+        </div>
+
+        <h3>Current File Structure:</h3>
+        <pre>
+src/
+├── js/
+│   ├── main.js              # Main application
+│   ├── mapManager.js        # 3D map operations
+│   ├── hazardManager.js     # Hazard data handling
+│   ├── filterManager.js     # Filtering system
+│   └── uiManager.js         # UI interactions
+├── css/
+│   └── styles.css           # Application styles
+├── data/                    # Place GeoJSON file here
+└── assets/icons/            # Hazard icons
+        </pre>
+
+        <p><strong>Note:</strong> The actual 3D map won't work until you complete the setup steps above, but the project structure is ready!</p>
+    </div>
+</body>
+</html>

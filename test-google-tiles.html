@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <style>
+        html, body, #cesiumContainer { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+    <script>
+        // Your token
+        Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhMzg4YjBkOC0wMGUwLTRjMzMtODZjMy05NDA0NGYyMzIzZGEiLCJpZCI6MzI0MzMxLCJpYXQiOjE3NTc5NjQxMDh9.OSWvv6a8r1wlWVgCf9QvHSIhNIBTMqWukie1hvCEpJ8';
+        
+        const viewer = new Cesium.Viewer('cesiumContainer');
+        
+        // Set camera to Hill AFB with better positioning
+        viewer.camera.setView({
+            destination: Cesium.Cartesian3.fromDegrees(-111.9731, 41.1234, 2000),
+            orientation: {
+                heading: 0.0,
+                pitch: Cesium.Math.toRadians(-45),
+                roll: 0.0
+            }
+        });
+        
+        console.log('Attempting to load Google 3D Tiles...');
+        
+        Cesium.createGooglePhotorealistic3DTileset()
+            .then(tileset => {
+                console.log('SUCCESS: Google 3D Tiles loaded!', tileset);
+                viewer.scene.primitives.add(tileset);
+            })
+            .catch(error => {
+                console.error('FAILED: Google 3D Tiles error:', error);
+                console.log('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name
+                });
+            });
+    </script>
+</body>
+</html>

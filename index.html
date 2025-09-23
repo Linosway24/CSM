@@ -1,0 +1,3234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OEHSA Interactive Hazard Map - Development</title>
+    
+    <!-- Load CesiumJS from CDN -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            display: none;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 80px);
+        }
+
+        .control-panel {
+            display: none;
+        }
+
+        .panel-section {
+            margin-bottom: 2rem;
+        }
+
+        .panel-section h3 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .filter-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-group h4 {
+            color: #34495e;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 0.5rem;
+            transform: scale(1.1);
+        }
+
+        .filter-controls {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .hazard-count {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background-color: #2c3e50;
+        }
+
+        .cesium-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            display: none;
+        }
+
+        .control-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .control-btn:hover {
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #e74c3c;
+        }
+
+        .error-message button {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 320px;
+            width: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .info-panel.hidden {
+            opacity: 0;
+            transform: translateX(-20px);
+            pointer-events: none;
+        }
+
+        /* Hover Information Bubble */
+        .info-bubble {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-bubble.hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+
+        .bubble-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .bubble-type {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .bubble-severity {
+            color: #FFC107;
+            font-size: 11px;
+        }
+
+        /* Click Info Box Styles */
+        .click-info-box {
+            position: absolute;
+            background: white;
+            border: 4px solid black;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            width: 400px;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+        }
+
+        /* Severity Gradient Bar - Now the title bar */
+        .severity-gradient-bar {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(to right, 
+                #ff6600 0%,     /* Orange */
+                #ffcc00 25%,    /* Yellow */
+                #90ee90 50%,    /* Light Green */
+                #32cd32 75%,    /* Green */
+                #20b2aa 100%    /* Teal */
+            );
+            border-radius: 6px 6px 0 0;
+            border: 1px solid #333;
+            border-bottom: 2px solid white;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+        }
+
+        .gradient-title {
+            color: black;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .gradient-close-btn {
+            background: none;
+            border: none;
+            color: black;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .gradient-close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Navigation Controls */
+        .info-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .nav-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 35px;
+            height: 35px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #0056b3;
+        }
+
+        .nav-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .hazard-counter {
+            font-weight: bold;
+            color: #495057;
+            font-size: 14px;
+        }
+
+        /* Help Icon Styles */
+        .help-icon {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .help-icon:hover {
+            background-color: #0056b3;
+            transform: scale(1.1);
+        }
+
+        .help-symbol {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+
+        .help-tooltip {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            background-color: white;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 280px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1001;
+        }
+
+        .help-icon:hover .help-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .help-tooltip h4 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .help-tooltip ul {
+            margin: 0;
+            padding-left: 20px;
+            list-style-type: none;
+        }
+
+        .help-tooltip li {
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .help-tooltip li strong {
+            color: #007bff;
+        }
+
+        .severity-gradient-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #333;
+        }
+
+
+        .click-info-box.hidden {
+            display: none;
+        }
+
+
+        .info-box-content {
+            padding: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            min-width: 120px;
+            margin-right: 8px;
+        }
+
+        .info-row span:last-child {
+            color: #666;
+            flex: 1;
+        }
+
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #3498db;
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .info-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+        }
+
+        .info-content {
+            padding: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-item label {
+            font-weight: 600;
+            color: #2c3e50;
+            min-width: 120px;
+        }
+
+        .info-item span {
+            color: #7f8c8d;
+            text-align: right;
+        }
+
+        .info-bubble {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            z-index: 1500;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .info-bubble.hidden {
+            display: none;
+        }
+
+        .bubble-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .legend {
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 0.5rem;
+            border-radius: 2px;
+            border: 1px solid #ddd;
+        }
+
+        .legend-text {
+            flex: 1;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Cesium Overrides */
+        .cesium-widget-credits {
+            display: none !important;
+        }
+
+        .cesium-viewer-bottom {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>OEHSA Interactive Hazard Map</h1>
+            <p>Environmental Hazard Analysis Training Module with Google Photorealistic 3D Tiles via Cesium Ion</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Control Panel -->
+            <div class="control-panel" id="controlPanel">
+                <div class="panel-section">
+                    <h3>Hazard Filters</h3>
+                    
+                    <!-- Hazard Type Filter -->
+                    <div class="filter-group">
+                        <h4>Hazard Type</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="chemical" data-filter="hazard-type" checked> Chemical</label>
+                            <label><input type="checkbox" value="biological" data-filter="hazard-type" checked> Biological</label>
+                            <label><input type="checkbox" value="radiological" data-filter="hazard-type" checked> Radiological</label>
+                            <label><input type="checkbox" value="nuclear" data-filter="hazard-type" checked> Nuclear</label>
+                            <label><input type="checkbox" value="environmental" data-filter="hazard-type" checked> Environmental</label>
+                            <label><input type="checkbox" value="physical" data-filter="hazard-type" checked> Physical</label>
+                        </div>
+                    </div>
+
+                    <!-- Environmental Medium Filter -->
+                    <div class="filter-group">
+                        <h4>Environmental Medium</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="air" data-filter="environmental-medium" checked> Air</label>
+                            <label><input type="checkbox" value="water" data-filter="environmental-medium" checked> Water</label>
+                            <label><input type="checkbox" value="soil" data-filter="environmental-medium" checked> Soil</label>
+                            <label><input type="checkbox" value="groundwater" data-filter="environmental-medium" checked> Groundwater</label>
+                        </div>
+                    </div>
+
+                    <!-- Severity Filter -->
+                    <div class="filter-group">
+                        <h4>Severity Level</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="1" data-filter="severity-level" checked> Level 1</label>
+                            <label><input type="checkbox" value="2" data-filter="severity-level" checked> Level 2</label>
+                            <label><input type="checkbox" value="3" data-filter="severity-level" checked> Level 3</label>
+                            <label><input type="checkbox" value="4" data-filter="severity-level" checked> Level 4</label>
+                            <label><input type="checkbox" value="5" data-filter="severity-level" checked> Level 5</label>
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls -->
+                    <div class="filter-controls">
+                        <button id="clearFilters" class="btn btn-secondary">Clear All Filters</button>
+                        <button id="selectAll" class="btn btn-secondary">Select All</button>
+                        <div class="hazard-count">
+                            <span id="hazardCount">0</span> hazards visible
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="panel-section">
+                    <h3>Legend</h3>
+                    <div id="legend" class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FFD700;"></div>
+                            <div class="legend-text">Chemical</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #32CD32;"></div>
+                            <div class="legend-text">Biological</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FF8C00;"></div>
+                            <div class="legend-text">Radiological</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FF0000;"></div>
+                            <div class="legend-text">Nuclear</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #4169E1;"></div>
+                            <div class="legend-text">Environmental</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #8A2BE2;"></div>
+                            <div class="legend-text">Physical</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="cesiumContainer" class="cesium-container"></div>
+                
+                <!-- Map Controls -->
+                <div class="map-controls">
+                    <button id="zoomIn" class="control-btn" title="Zoom In">+</button>
+                    <button id="zoomOut" class="control-btn" title="Zoom Out">-</button>
+                    <button id="resetView" class="control-btn" title="Reset View">⌂</button>
+                    <button id="flyToDenver" class="control-btn" title="Fly to Denver">🏔️</button>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="loading-indicator">
+                    <div class="spinner"></div>
+                    <p>Loading Google Photorealistic 3D Tiles...</p>
+                    <p>This may take a moment...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div id="infoPanel" class="info-panel hidden">
+            <div class="info-header">
+                <h3 id="infoTitle">Hazard Information</h3>
+                <button id="closeInfo" class="close-btn">&times;</button>
+            </div>
+            <div class="info-content">
+                <div class="info-item">
+                    <label>Type:</label>
+                    <span id="infoType">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Location:</label>
+                    <span id="infoLocation">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Severity:</label>
+                    <span id="infoSeverity">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Environmental Medium:</label>
+                    <span id="infoMedium">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Bubble (for hover) -->
+        <!-- Hover Information Bubble -->
+        <div id="infoBubble" class="info-bubble hidden">
+            <div class="bubble-content">
+                <div class="bubble-type" id="bubbleType">Hazard Type</div>
+                <div class="bubble-severity" id="bubbleSeverity">Level 0</div>
+            </div>
+        </div>
+
+        <!-- Help Icon -->
+        <div id="helpIcon" class="help-icon" title="Hover for navigation instructions">
+            <span class="help-symbol">?</span>
+            <div class="help-tooltip">
+                <h4>Map Navigation</h4>
+                <ul>
+                    <li><strong>Left Click + Drag:</strong> Rotate view</li>
+                    <li><strong>Right Click + Drag:</strong> Pan map</li>
+                    <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+                    <li><strong>Middle Click + Drag:</strong> Tilt view</li>
+                    <li><strong>Click Pins/Polygons:</strong> View hazard info</li>
+                    <li><strong>Use Arrow Keys:</strong> Navigate between hazards</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Click Information Box -->
+        <div id="clickInfoBox" class="click-info-box hidden">
+            <div class="severity-gradient-bar">
+                <h3 id="infoBoxTitle" class="gradient-title">Hazard Information</h3>
+                <button id="closeInfoBox" class="gradient-close-btn">&times;</button>
+            </div>
+            
+            <div class="info-box-content">
+                <div class="info-row">
+                    <span class="info-label">Environmental Medium:</span>
+                    <span id="infoBoxMedium">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Health Threat:</span>
+                    <span id="infoBoxHealthThreat">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Exposure Route:</span>
+                    <span id="infoBoxExposureRoute">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Population Affected:</span>
+                    <span id="infoBoxPopulation">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Existing Controls:</span>
+                    <span id="infoBoxControls">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Frequency/Duration:</span>
+                    <span id="infoBoxFreqDuration">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Severity:</span>
+                    <span id="infoBoxSeverity">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Probability:</span>
+                    <span id="infoBoxProbability">-</span>
+                </div>
+            </div>
+            
+            <!-- Navigation Controls -->
+            <div class="info-navigation">
+                <button id="prevHazard" class="nav-btn" title="Previous Hazard">←</button>
+                <span id="hazardCounter" class="hazard-counter">1 of 25</span>
+                <button id="nextHazard" class="nav-btn" title="Next Hazard">→</button>
+            </div>
+        </div>
+
+        <script>
+        // DataLoader class for handling GeoJSON data
+        class DataLoader {
+            constructor() {
+                this.hazardData = null;
+                this.loading = false;
+                this.error = null;
+            }
+
+            async loadGeoJSON(filePath) {
+                this.loading = true;
+                this.error = null;
+
+                try {
+                    console.log(`Loading GeoJSON data from: ${filePath}`);
+                    
+                    const response = await fetch(filePath);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // Validate GeoJSON structure
+                    this.validateGeoJSON(data);
+                    
+                    // Process and store the data
+                    this.hazardData = this.processHazardData(data);
+                    
+                    console.log(`Successfully loaded ${this.hazardData.features.length} hazard features`);
+                    
+                    this.loading = false;
+                    return this.hazardData;
+
+                } catch (error) {
+                    this.error = error.message;
+                    this.loading = false;
+                    console.error('Failed to load GeoJSON data:', error);
+                    throw error;
+                }
+            }
+
+            validateGeoJSON(data) {
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Invalid GeoJSON: Data is not an object');
+                }
+
+                if (data.type !== 'FeatureCollection') {
+                    throw new Error('Invalid GeoJSON: Must be a FeatureCollection');
+                }
+
+                if (!Array.isArray(data.features)) {
+                    throw new Error('Invalid GeoJSON: Features must be an array');
+                }
+
+                data.features.forEach((feature, index) => {
+                    const isValid = this.validateFeature(feature, index);
+                    if (isValid === false) {
+                        console.log(`Skipping feature at index ${index}: null geometry`);
+                    }
+                });
+            }
+
+            validateFeature(feature, index) {
+                if (!feature || typeof feature !== 'object') {
+                    throw new Error(`Invalid feature at index ${index}: Not an object`);
+                }
+
+                if (feature.type !== 'Feature') {
+                    throw new Error(`Invalid feature at index ${index}: Type must be 'Feature'`);
+                }
+
+                if (!feature.geometry || feature.geometry === null) {
+                    // Skip features with null geometry (some points files have these)
+                    return false;
+                }
+
+                if (!feature.properties) {
+                    throw new Error(`Invalid feature at index ${index}: Missing properties`);
+                }
+
+                // Check for HillAFBVector format (id, Name, Code) or standard format (hazard_id, etc.)
+                const hasStandardFormat = feature.properties.hazard_id && feature.properties.hazard_type;
+                const hasHillAFBFormat = feature.properties.id && feature.properties.Name;
+
+                if (!hasStandardFormat && !hasHillAFBFormat) {
+                    throw new Error(`Invalid feature at index ${index}: Missing required properties (need either hazard_id/hazard_type or id/Name)`);
+                }
+
+                if (feature.geometry.type !== 'Polygon' && feature.geometry.type !== 'MultiPolygon' && feature.geometry.type !== 'Point') {
+                    throw new Error(`Invalid feature at index ${index}: Geometry type must be 'Polygon', 'MultiPolygon', or 'Point'`);
+                }
+
+                if (!Array.isArray(feature.geometry.coordinates)) {
+                    throw new Error(`Invalid feature at index ${index}: Coordinates must be an array`);
+                }
+
+                return true; // Feature is valid
+            }
+
+            processHazardData(geoJSONData) {
+                console.log('Processing hazard data from points file...');
+                
+                const features = geoJSONData.features || [];
+                console.log(`Found ${features.length} point features`);
+                
+                // Group points by hazard ID to build polygons
+                const hazardGroups = {};
+                
+                features.forEach(feature => {
+                    if (feature.geometry && feature.geometry.type === 'Point' && feature.properties) {
+                        const id = feature.properties.id;
+                        const name = feature.properties.Name;
+                        const vertexIndex = feature.properties.vertex_index;
+                        
+                        if (id !== null && id !== undefined && vertexIndex !== null && vertexIndex !== undefined) {
+                            if (!hazardGroups[id]) {
+                                hazardGroups[id] = {
+                                    id: id,
+                                    name: name,
+                                    points: []
+                                };
+                            }
+                            
+                            hazardGroups[id].points.push({
+                                index: vertexIndex,
+                                coordinates: feature.geometry.coordinates
+                            });
+                        }
+                    }
+                });
+                
+                console.log(`Grouped into ${Object.keys(hazardGroups).length} hazard areas`);
+                
+                // Convert each group to a polygon feature
+                const polygonFeatures = [];
+                
+                Object.values(hazardGroups).forEach(group => {
+                    if (group.points.length >= 3) {
+                        // Sort points by vertex index
+                        group.points.sort((a, b) => a.index - b.index);
+                        
+                        // Convert coordinates to WGS84
+                        console.log(`Converting coordinates for group ${group.name} with ${group.points.length} points`);
+                        const wgs84Coords = group.points.map(point => {
+                            console.log(`Processing point ${point.index}: [${point.coordinates[0]}, ${point.coordinates[1]}]`);
+                            const converted = this.convertWebMercatorToWGS84([point.coordinates]);
+                            console.log(`Conversion result:`, converted);
+                            if (converted && converted.length > 0 && converted[0]) {
+                                console.log(`Converting point ${point.index}: [${point.coordinates[0]}, ${point.coordinates[1]}] -> [${converted[0][0]}, ${converted[0][1]}]`);
+                                return converted[0]; // Get the first (and only) coordinate pair
+                            } else {
+                                console.warn(`Failed to convert point ${point.index}: [${point.coordinates[0]}, ${point.coordinates[1]}]`);
+                                return null; // Mark as invalid
+                            }
+                        }).filter(coord => coord !== null); // Remove invalid coordinates
+                        
+                        console.log(`Group ${group.name} has ${wgs84Coords.length} converted coordinates`);
+                        
+                        if (wgs84Coords && wgs84Coords.length >= 3) {
+                            const polygonFeature = {
+                                type: 'Feature',
+                                properties: {
+                                    hazard_id: `H${group.id}`,
+                                    hazard_type: group.name,
+                                    environmental_medium: this.getEnvironmentalMedium(group.name),
+                                    severity_level: this.getSeverityLevel(group.name),
+                                    location_description: `${group.name} - Building ${group.id}`,
+                                    contaminant: this.getContaminant(group.name),
+                                    display_name: group.name,
+                                    color: this.getHazardColor(group.name),
+                                    icon: this.getHazardIcon(group.name)
+                                },
+                                geometry: {
+                                    type: 'Polygon',
+                                    coordinates: [wgs84Coords]
+                                }
+                            };
+                            
+                            polygonFeatures.push(polygonFeature);
+                            console.log(`Created polygon for ${group.name} with ${wgs84Coords.length} points`);
+                        }
+                    }
+                });
+                
+                console.log(`Created ${polygonFeatures.length} polygon features`);
+                
+                const processedData = {
+                    type: 'FeatureCollection',
+                    features: polygonFeatures
+                };
+
+                return processedData;
+            }
+
+            // Helper methods for hazard classification
+            getEnvironmentalMedium(name) {
+                const nameLower = name.toLowerCase();
+                if (nameLower.includes('water') || nameLower.includes('fuel') || nameLower.includes('municipal')) {
+                    return 'Water';
+                } else if (nameLower.includes('burn') || nameLower.includes('landfill') || nameLower.includes('soil')) {
+                    return 'Soil';
+                } else if (nameLower.includes('air') || nameLower.includes('x ray') || nameLower.includes('radar')) {
+                    return 'Air';
+                } else if (nameLower.includes('groundwater') || nameLower.includes('underground')) {
+                    return 'Groundwater';
+                }
+                return 'Soil'; // Default
+            }
+
+            getSeverityLevel(name) {
+                const nameLower = name.toLowerCase();
+                if (nameLower.includes('nuclear') || nameLower.includes('radiological') || nameLower.includes('hazmat')) {
+                    return 5;
+                } else if (nameLower.includes('fuel') || nameLower.includes('chemical') || nameLower.includes('burn') || nameLower.includes('welding')) {
+                    return 4;
+                } else if (nameLower.includes('x ray') || nameLower.includes('battery') || nameLower.includes('paint')) {
+                    return 3;
+                } else if (nameLower.includes('water') || nameLower.includes('gym') || nameLower.includes('warehouse')) {
+                    return 2;
+                }
+                return 1; // Default
+            }
+
+            getContaminant(name) {
+                const nameLower = name.toLowerCase();
+                if (nameLower.includes('fuel')) return 'Petroleum Hydrocarbons';
+                if (nameLower.includes('chemical')) return 'Chemical Contaminants';
+                if (nameLower.includes('burn')) return 'Combustion Byproducts';
+                if (nameLower.includes('x ray')) return 'Radiation';
+                if (nameLower.includes('battery')) return 'Heavy Metals';
+                if (nameLower.includes('paint')) return 'Volatile Organic Compounds';
+                return 'Unknown Contaminant';
+            }
+
+            getHazardColor(name) {
+                const severity = this.getSeverityLevel(name);
+                switch(severity) {
+                    case 5: return '#FF0000'; // Red
+                    case 4: return '#FF6600'; // Orange
+                    case 3: return '#FFCC00'; // Yellow
+                    case 2: return '#00CC00'; // Green
+                    case 1: return '#0066CC'; // Blue
+                    default: return '#666666'; // Gray
+                }
+            }
+
+            getHazardIcon(name) {
+                const nameLower = name.toLowerCase();
+                if (nameLower.includes('fuel')) return '⛽';
+                if (nameLower.includes('chemical')) return '🧪';
+                if (nameLower.includes('burn')) return '🔥';
+                if (nameLower.includes('x ray')) return '☢️';
+                if (nameLower.includes('battery')) return '🔋';
+                if (nameLower.includes('water')) return '💧';
+                return '⚠️'; // Default warning
+            }
+
+            transformHillAFBFeature(feature) {
+                // Transform HillAFBVector format to our expected format
+                const props = feature.properties;
+                const name = props.Name || `Area ${props.id}`;
+                
+                // Map HillAFB names to hazard types
+                const hazardTypeMap = {
+                    'Gate Area': 'Physical',
+                    'Gym Sauna': 'Physical',
+                    'Engine Testing Pad1': 'Environmental',
+                    'Aircraft Fuel Tanks': 'Chemical',
+                    'Legacy burn Pit': 'Environmental',
+                    'Welding Shop': 'Chemical',
+                    'Municipal Water Supply': 'Environmental',
+                    'Fuel truck refueling': 'Chemical',
+                    'Forest Fire': 'Environmental',
+                    'CATM Range': 'Physical',
+                    'Feild Water System': 'Environmental',
+                    'Warehouse': 'Physical',
+                    'Histoic Landfill': 'Environmental',
+                    'Cryogenics Shop': 'Chemical',
+                    'Medical X ray': 'Radiological',
+                    'Feild Training Area': 'Physical',
+                    'Battery Storage': 'Chemical',
+                    'Satellite Comms Dish': 'Radiological',
+                    'Pest Control': 'Chemical',
+                    'Paint Shop': 'Chemical',
+                    'Chemical Lab': 'Chemical',
+                    'Mechanical Shop': 'Physical',
+                    'HazMat Storage Area': 'Chemical',
+                    'Municipal Water System': 'Environmental'
+                };
+
+                const hazardType = hazardTypeMap[name] || 'Environmental';
+                
+                // Map to environmental medium based on hazard type
+                const mediumMap = {
+                    'Chemical': 'Soil',
+                    'Biological': 'Water',
+                    'Radiological': 'Air',
+                    'Nuclear': 'Air',
+                    'Environmental': 'Groundwater',
+                    'Physical': 'Soil'
+                };
+
+                // Generate severity level based on hazard type
+                const severityMap = {
+                    'Chemical': 4,
+                    'Biological': 2,
+                    'Radiological': 5,
+                    'Nuclear': 5,
+                    'Environmental': 3,
+                    'Physical': 1
+                };
+
+                // Convert coordinates from Web Mercator (EPSG:3857) to WGS84
+                console.log(`Converting coordinates for ${name} (ID: ${props.id}):`, feature.geometry.coordinates);
+                const coords = this.convertWebMercatorToWGS84(feature.geometry.coordinates);
+                console.log(`Converted coordinates for ${name}:`, coords);
+                
+                // Flatten the coordinates if they're nested (MultiPolygon case)
+                let flatCoords = coords;
+                if (coords.length > 0 && Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+                    // MultiPolygon - take the first polygon
+                    flatCoords = coords[0];
+                    console.log(`Flattened MultiPolygon coordinates for ${name}:`, flatCoords);
+                }
+                
+                // If we still have nested arrays, flatten one more level
+                if (flatCoords.length > 0 && Array.isArray(flatCoords[0]) && Array.isArray(flatCoords[0][0])) {
+                    flatCoords = flatCoords[0];
+                    console.log(`Double-flattened coordinates for ${name}:`, flatCoords);
+                }
+                
+                // Skip features with empty coordinates
+                if (!flatCoords || flatCoords.length === 0) {
+                    console.warn(`Skipping feature ${props.id} (${name}) - empty coordinates`);
+                    return null;
+                }
+                
+                return {
+                    ...feature,
+                    properties: {
+                        hazard_id: `H${props.id}`,
+                        hazard_type: hazardType,
+                        environmental_medium: mediumMap[hazardType],
+                        severity_level: severityMap[hazardType],
+                        location_description: name,
+                        contaminant: this.getContaminantForType(hazardType),
+                        area_estimate: this.calculateArea({ type: 'Polygon', coordinates: [flatCoords] }),
+                        last_updated: '2024-01-15',
+                        display_name: name,
+                        color: this.getHazardColor(hazardType),
+                        icon: this.getHazardIcon(hazardType),
+                        centroid: this.calculateCentroid({ type: 'Polygon', coordinates: [flatCoords] })
+                    },
+                    geometry: {
+                        ...feature.geometry,
+                        coordinates: [flatCoords]
+                    }
+                };
+            }
+
+            convertWebMercatorToWGS84(coordinates) {
+                // Convert from Web Mercator (EPSG:3857) to WGS84 (EPSG:4326)
+                
+                // Check if coordinates are empty or invalid
+                if (!coordinates || !Array.isArray(coordinates) || coordinates.length === 0) {
+                    console.warn('Empty or invalid coordinates, returning empty array');
+                    return [];
+                }
+
+                try {
+                    // Check if it's a MultiPolygon (nested array structure)
+                    if (coordinates[0] && coordinates[0][0] && coordinates[0][0][0] && Array.isArray(coordinates[0][0][0])) {
+                        // MultiPolygon
+                        return coordinates.map(polygon => 
+                            polygon.map(ring => 
+                                ring.map(coord => {
+                                    if (!Array.isArray(coord) || coord.length < 2) {
+                                        console.warn('Invalid coordinate:', coord);
+                                        return [0, 0]; // Default coordinate
+                                    }
+                                    const lon = (coord[0] * 180) / 20037508.34;
+                                    const lat = Math.atan(Math.sinh((coord[1] * Math.PI) / 20037508.34)) * 180 / Math.PI;
+                                    
+                                    // Validate coordinate ranges
+                                    if (isNaN(lon) || isNaN(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+                                        console.warn('Invalid converted coordinate:', { lon, lat, original: coord });
+                                        return [0, 0]; // Default coordinate
+                                    }
+                                    
+                                    return [lon, lat];
+                                })
+                            )
+                        );
+                    } else if (coordinates[0] && coordinates[0][0] && Array.isArray(coordinates[0][0])) {
+                        // Polygon
+                        return coordinates.map(ring => 
+                            ring.map(coord => {
+                                if (!Array.isArray(coord) || coord.length < 2) {
+                                    console.warn('Invalid coordinate:', coord);
+                                    return [0, 0]; // Default coordinate
+                                }
+                                const lon = (coord[0] * 180) / 20037508.34;
+                                const lat = Math.atan(Math.sinh((coord[1] * Math.PI) / 20037508.34)) * 180 / Math.PI;
+                                
+                                // Validate coordinate ranges
+                                if (isNaN(lon) || isNaN(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+                                    console.warn('Invalid converted coordinate:', { lon, lat, original: coord });
+                                    return [0, 0]; // Default coordinate
+                                }
+                                
+                                return [lon, lat];
+                            })
+                        );
+                    } else if (coordinates[0] && Array.isArray(coordinates[0]) && coordinates[0].length === 2) {
+                        // Single coordinate pair (for points)
+                        const coord = coordinates[0];
+                        if (!Array.isArray(coord) || coord.length < 2) {
+                            console.warn('Invalid coordinate:', coord);
+                            return [];
+                        }
+                        const lon = (coord[0] * 180) / 20037508.34;
+                        const lat = Math.atan(Math.sinh((coord[1] * Math.PI) / 20037508.34)) * 180 / Math.PI;
+                        
+                        // Validate coordinate ranges
+                        if (isNaN(lon) || isNaN(lat) || lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+                            console.warn('Invalid converted coordinate:', { lon, lat, original: coord });
+                            return [];
+                        }
+                        
+                        return [[lon, lat]]; // Return as array containing the coordinate pair
+                    } else {
+                        console.warn('Unknown coordinate structure:', coordinates);
+                        return []; // Return empty array for unknown structures
+                    }
+                } catch (error) {
+                    console.error('Error converting coordinates:', error);
+                    return [];
+                }
+            }
+
+            getContaminantForType(hazardType) {
+                const contaminantMap = {
+                    'Chemical': 'Various chemicals and solvents',
+                    'Biological': 'Bacterial contamination',
+                    'Radiological': 'Radioactive materials',
+                    'Nuclear': 'Nuclear materials',
+                    'Environmental': 'Environmental contaminants',
+                    'Physical': 'Physical hazards'
+                };
+                return contaminantMap[hazardType] || 'Unknown contaminants';
+            }
+
+            calculateCentroid(geometry) {
+                if (geometry.type !== 'Polygon' || !geometry.coordinates[0]) {
+                    return [0, 0];
+                }
+
+                const coords = geometry.coordinates[0];
+                let x = 0, y = 0;
+                
+                coords.forEach(coord => {
+                    x += coord[0];
+                    y += coord[1];
+                });
+
+                return [x / coords.length, y / coords.length];
+            }
+
+            calculateArea(geometry) {
+                if (geometry.type !== 'Polygon' || !geometry.coordinates[0]) {
+                    return 0;
+                }
+
+                const coords = geometry.coordinates[0];
+                let area = 0;
+                
+                for (let i = 0; i < coords.length - 1; i++) {
+                    area += coords[i][0] * coords[i + 1][1];
+                    area -= coords[i + 1][0] * coords[i][1];
+                }
+                
+                return Math.abs(area) * 111000 * 111000;
+            }
+
+            generateDisplayName(properties) {
+                return `${properties.hazard_type} Hazard - ${properties.location_description}`;
+            }
+
+            getHazardColor(hazardType) {
+                const colors = {
+                    'Chemical': '#3498db',
+                    'Biological': '#2ecc71',
+                    'Radiological': '#f1c40f',
+                    'Nuclear': '#e74c3c',
+                    'Environmental': '#e67e22',
+                    'Physical': '#9b59b6'
+                };
+                return colors[hazardType] || '#95a5a6';
+            }
+
+            getHazardIcon(hazardType) {
+                const icons = {
+                    'Chemical': '⚠️',
+                    'Biological': '🦠',
+                    'Radiological': '☢️',
+                    'Nuclear': '☢️',
+                    'Environmental': '🌍',
+                    'Physical': '⚠️'
+                };
+                return icons[hazardType] || '⚠️';
+            }
+
+            getFilteredHazards(filters = {}) {
+                if (!this.hazardData || !this.hazardData.features) {
+                    return [];
+                }
+
+                return this.hazardData.features.filter(feature => {
+                    const props = feature.properties;
+
+                    if (filters.hazardTypes && filters.hazardTypes.length > 0) {
+                        if (!filters.hazardTypes.includes(props.hazard_type)) {
+                            return false;
+                        }
+                    }
+
+                    if (filters.environmentalMediums && filters.environmentalMediums.length > 0) {
+                        if (!filters.environmentalMediums.includes(props.environmental_medium)) {
+                            return false;
+                        }
+                    }
+
+                    if (filters.severityLevels && filters.severityLevels.length > 0) {
+                        if (!filters.severityLevels.includes(props.severity_level)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+            }
+
+            getStatistics() {
+                if (!this.hazardData || !this.hazardData.features) {
+                    return {
+                        totalHazards: 0,
+                        byType: {},
+                        byMedium: {},
+                        bySeverity: {}
+                    };
+                }
+
+                const stats = {
+                    totalHazards: this.hazardData.features.length,
+                    byType: {},
+                    byMedium: {},
+                    bySeverity: {}
+                };
+
+                this.hazardData.features.forEach(feature => {
+                    const props = feature.properties;
+                    stats.byType[props.hazard_type] = (stats.byType[props.hazard_type] || 0) + 1;
+                    stats.byMedium[props.environmental_medium] = (stats.byMedium[props.environmental_medium] || 0) + 1;
+                    stats.bySeverity[props.severity_level] = (stats.bySeverity[props.severity_level] || 0) + 1;
+                });
+
+                return stats;
+            }
+
+            isLoading() {
+                return this.loading;
+            }
+
+            getError() {
+                return this.error;
+            }
+
+            getData() {
+                return this.hazardData;
+            }
+        }
+
+        // OEHSA Interactive Hazard Map - Main Application
+        class OEHSAHazardMap {
+            constructor() {
+                this.viewer = null;
+                this.tileset = null;
+                
+                // Configuration
+                this.config = {
+                    // Cesium token
+                    cesiumToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhMzg4YjBkOC0wMGUwLTRjMzMtODZjMy05NDA0NGYyMzIzZGEiLCJpZCI6MzI0MzMxLCJpYXQiOjE3NTc5NjQxMDh9.OSWvv6a8r1wlWVgCf9QvHSIhNIBTMqWukie1hvCEpJ8',
+                    // Initial camera position (Hill Air Force Base area)
+                    initialPosition: {
+                        longitude: -111.9731,
+                        latitude: 41.1400,
+                        height: 20000
+                    },
+                        // Data file path
+                        dataFile: './src/data/HillAFBPoint.geojson'
+                };
+
+                // Initialize data loader
+                this.dataLoader = new DataLoader();
+                
+                // Proximity fade properties
+                this.currentHazardEntity = null;
+                this.proximityCheckInterval = null;
+                this.fadeDistance = 5000; // Distance in meters for fade effect
+                this.hazardFeatures = [];
+                
+                // Navigation state
+                this.currentHazardIndex = 0;
+                this.hazardEntities = [];
+                this.hazardData = [];
+            }
+
+            async init() {
+                try {
+                    console.log('Initializing OEHSA Hazard Map...');
+                    
+                    // Show loading indicator
+                    this.showLoading(true);
+                    
+                    // Initialize Cesium viewer and load Google 3D Tiles first
+                    await this.initializeCesium();
+                    
+                    // Hide loading indicator after Google 3D Tiles are loaded
+                    this.showLoading(false);
+                    
+                    // Set up event listeners
+                    this.setupEventListeners();
+                    this.setupInfoBoxListeners();
+                    
+                    // Try to load hazard data (but don't let it block the main app)
+                    try {
+                        await this.loadHazardData();
+                    } catch (hazardError) {
+                        console.warn('Hazard data failed to load, but map is still functional:', hazardError);
+                    }
+                    
+                    console.log('OEHSA Hazard Map initialized successfully');
+                    
+                } catch (error) {
+                    console.error('Failed to initialize OEHSA Hazard Map:', error);
+                    this.showError('Failed to initialize the hazard map. Please refresh the page.');
+                }
+            }
+
+            showLoading(show) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator) {
+                    if (show) {
+                        loadingIndicator.style.display = 'flex';
+                    } else {
+                        loadingIndicator.style.display = 'none';
+                    }
+                }
+            }
+
+            showError(message) {
+                console.error(message);
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator) {
+                    loadingIndicator.innerHTML = `
+                        <div class="spinner" style="border-color: #e74c3c;"></div>
+                        <p style="color: #e74c3c;">Error: ${message}</p>
+                        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>
+                    `;
+                }
+            }
+
+            async initializeCesium() {
+                // Check if Cesium is loaded
+                if (typeof Cesium === 'undefined') {
+                    throw new Error('CesiumJS library not loaded. Please check your internet connection.');
+                }
+                
+                // Set Cesium base URL for CDN
+                window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/';
+                
+                // Configure Cesium
+                Cesium.Ion.defaultAccessToken = this.config.cesiumToken;
+                
+                // Initialize viewer with minimal configuration (like our working test)
+                this.viewer = new Cesium.Viewer('cesiumContainer', {
+                    // Disable default UI elements we don't need
+                    homeButton: false,
+                    sceneModePicker: false,
+                    baseLayerPicker: false,
+                    navigationHelpButton: false,
+                    geocoder: false,
+                    animation: false,
+                    timeline: false,
+                    fullscreenButton: false,
+                    vrButton: false,
+                    // Enable selection
+                    selectionIndicator: false
+                });
+
+                // Set up camera constraints to keep view within Hill AFB boundaries
+                this.setupCameraConstraints();
+
+                // Set camera directly to Hill Air Force Base area (no animation)
+                this.viewer.camera.setView({
+                    destination: Cesium.Cartesian3.fromDegrees(
+                        this.config.initialPosition.longitude,
+                        this.config.initialPosition.latitude,
+                        this.config.initialPosition.height
+                    ),
+                    orientation: {
+                        heading: 0.0,
+                        pitch: Cesium.Math.toRadians(-90), // Looking straight down
+                        roll: 0.0
+                    }
+                });
+
+                // Configure basic scene settings (simplified for Google 3D Tiles)
+                this.viewer.scene.globe.enableLighting = true;
+                this.viewer.scene.skyAtmosphere.show = true;
+                
+                // Configure camera controls
+                this.viewer.scene.screenSpaceCameraController.minimumZoomDistance = 10.0;
+                this.viewer.scene.screenSpaceCameraController.maximumZoomDistance = 20000000.0;
+                
+                // Load imagery provider (fallback to standard imagery)
+                await this.loadImageryProvider();
+            }
+
+            setupCameraConstraints() {
+                // Define Hill Air Force Base boundaries (hard limits)
+                const hillAFBBounds = {
+                    west: -112.15,   // Western boundary
+                    south: 41.05,    // Southern boundary  
+                    east: -111.95,   // Eastern boundary
+                    north: 41.20     // Northern boundary
+                };
+
+                // Normal zoom behavior - no constraints
+                this.viewer.scene.screenSpaceCameraController.enableZoom = true;
+
+                // Hard boundary enforcement - blocks movement at the edge
+                this.viewer.camera.moveEnd.addEventListener(() => {
+                    const position = this.viewer.camera.position;
+                    const cartographic = Cesium.Cartographic.fromCartesian(position);
+                    const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                    const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+                    
+                    let needsCorrection = false;
+                    let correctedLon = longitude;
+                    let correctedLat = latitude;
+                    
+                    // Hard clamp to boundaries
+                    if (longitude < hillAFBBounds.west) {
+                        correctedLon = hillAFBBounds.west;
+                        needsCorrection = true;
+                    } else if (longitude > hillAFBBounds.east) {
+                        correctedLon = hillAFBBounds.east;
+                        needsCorrection = true;
+                    }
+                    
+                    if (latitude < hillAFBBounds.south) {
+                        correctedLat = hillAFBBounds.south;
+                        needsCorrection = true;
+                    } else if (latitude > hillAFBBounds.north) {
+                        correctedLat = hillAFBBounds.north;
+                        needsCorrection = true;
+                    }
+                    
+                    // Immediately snap back to boundary if outside
+                    if (needsCorrection) {
+                        this.viewer.camera.setView({
+                            destination: Cesium.Cartesian3.fromDegrees(
+                                correctedLon,
+                                correctedLat,
+                                cartographic.height
+                            ),
+                            orientation: {
+                                heading: this.viewer.camera.heading,
+                                pitch: this.viewer.camera.pitch,
+                                roll: this.viewer.camera.roll
+                            }
+                        });
+                    }
+                });
+
+                // Real-time boundary enforcement during movement
+                this.viewer.camera.changed.addEventListener(() => {
+                    const position = this.viewer.camera.position;
+                    const cartographic = Cesium.Cartographic.fromCartesian(position);
+                    const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                    const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+                    
+                    // Hard clamp coordinates to boundaries
+                    let correctedLon = Math.max(hillAFBBounds.west, Math.min(hillAFBBounds.east, longitude));
+                    let correctedLat = Math.max(hillAFBBounds.south, Math.min(hillAFBBounds.north, latitude));
+                    
+                    // If position was clamped, immediately correct it
+                    if (correctedLon !== longitude || correctedLat !== latitude) {
+                        this.viewer.camera.setView({
+                            destination: Cesium.Cartesian3.fromDegrees(
+                                correctedLon,
+                                correctedLat,
+                                cartographic.height
+                            ),
+                            orientation: {
+                                heading: this.viewer.camera.heading,
+                                pitch: this.viewer.camera.pitch,
+                                roll: this.viewer.camera.roll
+                            }
+                        });
+                    }
+                });
+
+                // Override camera controller to prevent boundary crossing
+                const originalMove = this.viewer.scene.screenSpaceCameraController.move;
+                this.viewer.scene.screenSpaceCameraController.move = (direction, amount) => {
+                    const currentPosition = this.viewer.camera.position;
+                    const currentCartographic = Cesium.Cartographic.fromCartesian(currentPosition);
+                    const currentLon = Cesium.Math.toDegrees(currentCartographic.longitude);
+                    const currentLat = Cesium.Math.toDegrees(currentCartographic.latitude);
+                    
+                    // Calculate potential new position
+                    const moveAmount = amount * 0.0005; // Reduced sensitivity for tighter control
+                    let newLon = currentLon + (direction.x * moveAmount);
+                    let newLat = currentLat + (direction.y * moveAmount);
+                    
+                    // Check if new position would be within bounds
+                    if (newLon >= hillAFBBounds.west && newLon <= hillAFBBounds.east &&
+                        newLat >= hillAFBBounds.south && newLat <= hillAFBBounds.north) {
+                        // Allow the move
+                        originalMove.call(this.viewer.scene.screenSpaceCameraController, direction, amount);
+                    }
+                    // If move would go outside bounds, block it completely
+                };
+
+                // Zoom constraints removed - normal zoom behavior restored
+
+                console.log('Hard camera constraints set for Hill Air Force Base - movement clamped to boundaries');
+            }
+
+            // Load Google Photorealistic 3D Tiles via Cesium Ion
+            async loadImageryProvider() {
+                try {
+                    console.log('=== DEBUG: Starting Google 3D Tiles load ===');
+                    console.log('Cesium object:', typeof Cesium);
+                    console.log('createGooglePhotorealistic3DTileset function:', typeof Cesium.createGooglePhotorealistic3DTileset);
+                    
+                    // Load Google Photorealistic 3D Tiles through Cesium Ion
+                    console.log('Calling Cesium.createGooglePhotorealistic3DTileset()...');
+                this.tileset = await Cesium.createGooglePhotorealistic3DTileset();
+                    console.log('Tileset created:', this.tileset);
+                    
+                    console.log('Adding tileset to scene...');
+                this.viewer.scene.primitives.add(this.tileset);
+                    console.log('Google Photorealistic 3D Tiles added to scene successfully');
+                    
+                    // Add error handling for the tileset (check if readyPromise exists)
+                    if (this.tileset.readyPromise) {
+                        this.tileset.readyPromise.then(function(tileset) {
+                            console.log('=== TILESET READY ===', tileset);
+                        }).otherwise(function(error) {
+                            console.error('=== TILESET READY ERROR ===', error);
+                        });
+                    } else {
+                        console.log('Tileset readyPromise not available, but tileset loaded');
+                    }
+                    
+                    // Check if tileset is visible
+                    setTimeout(() => {
+                        console.log('Tileset visibility check:');
+                        console.log('- Tileset show:', this.tileset.show);
+                        console.log('- Tileset ready:', this.tileset.ready);
+                        console.log('- Scene primitives count:', this.viewer.scene.primitives.length);
+                    }, 2000);
+                    
+                } catch (error) {
+                    console.error('=== FAILED TO LOAD GOOGLE 3D TILES ===', error);
+                    console.log('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                    });
+                    console.log('Falling back to Cesium World Imagery...');
+                    
+                    // Fallback to Cesium World Imagery (more reliable)
+                    try {
+                        console.log('Using Cesium World Imagery as fallback...');
+                        const worldImageryProvider = new Cesium.IonImageryProvider({ assetId: 1 });
+                        this.viewer.imageryLayers.removeAll();
+                        this.viewer.imageryLayers.addImageryProvider(worldImageryProvider);
+                        console.log('Cesium World Imagery loaded as fallback');
+                    } catch (fallbackError) {
+                        console.error('Cesium World Imagery failed, trying OpenStreetMap:', fallbackError);
+                        
+                        // Final fallback to OpenStreetMap
+                        try {
+                            const osmProvider = new Cesium.OpenStreetMapImageryProvider({
+                                url: 'https://a.tile.openstreetmap.org/'
+                            });
+                            this.viewer.imageryLayers.removeAll();
+                            this.viewer.imageryLayers.addImageryProvider(osmProvider);
+                            console.log('OpenStreetMap loaded as final fallback');
+                        } catch (osmError) {
+                            console.error('All imagery providers failed:', osmError);
+                        }
+                    }
+                }
+            }
+
+            async loadHazardData() {
+                try {
+                    console.log('=== DEBUG: Loading hazard data ===');
+                    console.log('Data file path:', this.config.dataFile);
+                    console.log('DataLoader object:', this.dataLoader);
+                    
+                    // Test if we can fetch the file directly first
+                    console.log('Testing direct fetch...');
+                    const response = await fetch(this.config.dataFile);
+                    console.log('Fetch response status:', response.status);
+                    console.log('Fetch response ok:', response.ok);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const rawData = await response.json();
+                    console.log('Direct fetch successful, raw data:', rawData);
+                    
+                    // Load GeoJSON data using DataLoader
+                    console.log('Loading with DataLoader...');
+                    const hazardData = await this.dataLoader.loadGeoJSON(this.config.dataFile);
+                    console.log('DataLoader result:', hazardData);
+                    
+                    // Store the loaded data
+                    this.hazardFeatures = hazardData.features;
+                    // Store for navigation, sorted by hazard ID (H1, H2, H3, etc.)
+                    this.hazardData = hazardData.features.sort((a, b) => {
+                        // Extract number from hazard_id (e.g., "H1" -> 1, "H2" -> 2)
+                        const aNum = parseInt(a.properties.hazard_id.replace('H', ''));
+                        const bNum = parseInt(b.properties.hazard_id.replace('H', ''));
+                        return aNum - bNum;
+                    });
+                    console.log('Hazard features stored:', this.hazardFeatures);
+                    console.log('Number of features:', this.hazardFeatures ? this.hazardFeatures.length : 'undefined');
+                    
+                    // Log statistics
+                    const stats = this.dataLoader.getStatistics();
+                    console.log('Hazard data loaded successfully:', stats);
+                    console.log('Hazard features array:', this.hazardFeatures);
+                    console.log('Number of hazard features:', this.hazardFeatures.length);
+                    
+                    // Update UI with hazard count
+                    this.updateHazardCount(stats.totalHazards);
+                    
+                    // Render hazards on the map
+                    console.log('=== DEBUG: Rendering hazards ===');
+                    this.renderHazards();
+                    
+                } catch (error) {
+                    console.error('=== FAILED TO LOAD HAZARD DATA ===', error);
+                    console.log('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        name: error.name
+                    });
+                    // Don't throw error - allow map to load without data
+                    this.updateHazardCount(0);
+                }
+            }
+
+            updateHazardCount(count) {
+                const countElement = document.getElementById('hazardCount');
+                if (countElement) {
+                    countElement.textContent = `${count} hazards visible`;
+                }
+            }
+
+            setupEventListeners() {
+                console.log('Setting up event listeners...');
+                
+                // Add navigation event listeners
+                const prevHazardBtn = document.getElementById('prevHazard');
+                const nextHazardBtn = document.getElementById('nextHazard');
+                
+                if (prevHazardBtn) {
+                    prevHazardBtn.addEventListener('click', () => {
+                        this.navigateToHazard(-1);
+                    });
+                }
+                
+                if (nextHazardBtn) {
+                    nextHazardBtn.addEventListener('click', () => {
+                        this.navigateToHazard(1);
+                    });
+                }
+                
+                // Add event listeners for map controls
+                const zoomInBtn = document.getElementById('zoomIn');
+                const zoomOutBtn = document.getElementById('zoomOut');
+                const resetViewBtn = document.getElementById('resetView');
+                
+                if (zoomInBtn) {
+                    zoomInBtn.addEventListener('click', () => {
+                        this.viewer.camera.zoomIn(this.viewer.camera.positionCartographic.height * 0.5);
+                    });
+                }
+                
+                if (zoomOutBtn) {
+                    zoomOutBtn.addEventListener('click', () => {
+                        this.viewer.camera.zoomOut(this.viewer.camera.positionCartographic.height * 2);
+                    });
+                }
+                
+                if (resetViewBtn) {
+                    resetViewBtn.addEventListener('click', () => {
+                        this.viewer.camera.setView({
+                            destination: Cesium.Cartesian3.fromDegrees(
+                                this.config.initialPosition.longitude,
+                                this.config.initialPosition.latitude,
+                                this.config.initialPosition.height
+                            ),
+                            orientation: {
+                                heading: 0.0,
+                                pitch: Cesium.Math.toRadians(-90),
+                                roll: 0.0
+                            }
+                        });
+                    });
+                }
+            }
+
+            setupInfoBoxListeners() {
+                console.log('Setting up info box listeners...');
+                // Add event listeners for info boxes
+                const closeInfoBox = document.getElementById('closeInfoBox');
+                if (closeInfoBox) {
+                    closeInfoBox.addEventListener('click', () => {
+                        const clickInfoBox = document.getElementById('clickInfoBox');
+                        if (clickInfoBox) {
+                            clickInfoBox.classList.add('hidden');
+                        }
+                        // Stop proximity checking when info panel is closed
+                        this.stopProximityCheck();
+                        this.currentHazardEntity = null;
+                    });
+                }
+
+                // Add Cesium click handler for entities
+                this.viewer.cesiumWidget.screenSpaceEventHandler.setInputAction((click) => {
+                    const pickedObject = this.viewer.scene.pick(click.position);
+                    if (pickedObject && pickedObject.id && pickedObject.id.clickHandler) {
+                        console.log('Entity clicked:', pickedObject.id);
+                        pickedObject.id.clickHandler(pickedObject.id);
+                    }
+                }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            }
+
+            clearHazards() {
+                console.log('Clearing existing hazards...');
+                // Remove all entities that start with 'hazard-'
+                const entities = this.viewer.entities.values;
+                for (let i = entities.length - 1; i >= 0; i--) {
+                    const entity = entities[i];
+                    if (entity.id && entity.id.startsWith('hazard-')) {
+                        this.viewer.entities.remove(entity);
+                    }
+                }
+                console.log('Existing hazards cleared');
+            }
+
+            renderHazards() {
+                console.log('=== DEBUG: renderHazards called ===');
+                console.log('Hazard features:', this.hazardFeatures);
+                console.log('Hazard features length:', this.hazardFeatures ? this.hazardFeatures.length : 'undefined');
+                
+                if (!this.hazardFeatures || this.hazardFeatures.length === 0) {
+                    console.log('No hazard features to render');
+                    return;
+                }
+
+                console.log(`Rendering ${this.hazardFeatures.length} hazard features...`);
+                console.log('Hazard features:', this.hazardFeatures);
+
+                // Clear existing hazards
+                this.clearHazards();
+
+                // Render each hazard
+                this.hazardFeatures.forEach((feature, index) => {
+                    console.log(`Rendering hazard ${index}:`, feature.properties);
+                    this.renderHazardFeature(feature, index);
+                });
+
+                console.log('Hazard rendering complete');
+                
+                // Log all pin coordinates
+                this.logAllPinCoordinates();
+                
+                // Force zoom to hazards to make sure they're visible
+                console.log('Zooming to hazard area...');
+                this.zoomToAllHazards();
+            }
+
+            renderHazardFeature(feature, index) {
+                try {
+                    const props = feature.properties;
+                    // For Polygon features, coordinates are in feature.geometry.coordinates[0]
+                    const coordinates = feature.geometry.coordinates[0];
+                    
+                    // Add coordinates to props for zoom functionality
+                    props.coordinates = coordinates;
+
+                    console.log(`Rendering hazard ${index} at coordinates:`, coordinates);
+                    console.log(`Hazard ID: ${props.hazard_id}, Name: ${props.display_name}`);
+                    console.log(`First few coordinates:`, coordinates.slice(0, 3));
+                    console.log(`First coordinate pair:`, coordinates[0]);
+                    console.log(`Coordinate structure:`, {
+                        length: coordinates.length,
+                        firstElement: coordinates[0],
+                        isArray: Array.isArray(coordinates[0]),
+                        firstElementLength: Array.isArray(coordinates[0]) ? coordinates[0].length : 'N/A'
+                    });
+
+                    // Validate coordinates before processing
+                    if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 3) {
+                        console.warn(`Invalid coordinates for hazard ${index}:`, coordinates);
+                        return;
+                    }
+                    
+                    // Check if coordinates are still nested (array of arrays of coordinate pairs)
+                    let coordPairs = coordinates;
+                    if (coordinates.length > 0 && Array.isArray(coordinates[0]) && Array.isArray(coordinates[0][0])) {
+                        // Still nested - take the first ring
+                        coordPairs = coordinates[0];
+                        console.log(`Unwrapped coordinate ring for hazard ${index}:`, coordPairs);
+                    }
+                    
+                    // Filter out invalid coordinates
+                    const validCoords = coordPairs.filter(coord => {
+                        const isValid = Array.isArray(coord) && 
+                            coord.length >= 2 && 
+                            !isNaN(coord[0]) && 
+                            !isNaN(coord[1]) &&
+                            coord[0] >= -180 && coord[0] <= 180 &&
+                            coord[1] >= -90 && coord[1] <= 90;
+                        
+                        if (!isValid) {
+                            console.log(`Invalid coordinate filtered out:`, coord);
+                        }
+                        return isValid;
+                    });
+                    
+                    if (validCoords.length < 3) {
+                        console.warn(`Not enough valid coordinates for hazard ${index}:`, validCoords.length);
+                        return;
+                    }
+
+                    // Convert GeoJSON coordinates to Cesium positions
+                    const positions = validCoords.map(coord => 
+                        Cesium.Cartesian3.fromDegrees(coord[0], coord[1], 0)
+                    );
+
+                    console.log(`Converted to Cesium positions:`, positions);
+                    console.log(`Valid coordinates count: ${validCoords.length}`);
+
+                        // Create polygon entity for the hazard area
+                        let polygonConfig = {
+                                hierarchy: positions,
+                            material: Cesium.Color.RED.withAlpha(0.3), // Red with 30% opacity
+                                outline: true,
+                                outlineColor: Cesium.Color.YELLOW,
+                            outlineWidth: 3,
+                                height: 0,
+                            extrudedHeight: 5, // 5 meter height
+                                closeTop: true,
+                                closeBottom: true,
+                            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                            show: true, // Explicitly set show to true
+                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE), // Always visible
+                            classificationType: Cesium.ClassificationType.BOTH, // Render on both terrain and 3D tiles
+                            shadows: Cesium.ShadowMode.DISABLED, // Disable shadows to prevent rendering issues
+                            perPositionHeight: false // Use constant height
+                        };
+
+                        // Special configuration for first 3 hazards that aren't showing
+                        if (props.hazard_id === 'H1' || props.hazard_id === 'H2' || props.hazard_id === 'H3') {
+                            console.log(`Using special polygon config for ${props.hazard_id}`);
+                            polygonConfig = {
+                                hierarchy: positions,
+                                material: Cesium.Color.RED.withAlpha(0.5), // Higher opacity for visibility
+                                outline: true,
+                                outlineColor: Cesium.Color.YELLOW,
+                                outlineWidth: 5, // Thicker outline
+                                height: 0,
+                                extrudedHeight: 10, // Higher extrusion
+                                closeTop: true,
+                                closeBottom: true,
+                                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                                show: true,
+                                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE),
+                                classificationType: Cesium.ClassificationType.TERRAIN, // Only terrain
+                                shadows: Cesium.ShadowMode.DISABLED,
+                                perPositionHeight: false
+                            };
+                        }
+
+                        const polygonEntity = this.viewer.entities.add({
+                            id: `hazard-polygon-${props.hazard_id}`,
+                            name: props.display_name,
+                            polygon: polygonConfig,
+                            properties: {
+                                hazardData: props
+                            },
+                            show: true // Also set show on the entity itself
+                        });
+
+                        // Calculate centroid if not available
+                        let centroid = props.centroid;
+                        if (!centroid || !Array.isArray(centroid) || centroid.length < 2) {
+                            // Calculate centroid from polygon coordinates
+                            const lons = validCoords.map(coord => coord[0]);
+                            const lats = validCoords.map(coord => coord[1]);
+                            const avgLon = lons.reduce((sum, lon) => sum + lon, 0) / lons.length;
+                            const avgLat = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
+                            centroid = [avgLon, avgLat];
+                        }
+
+                        // Create pin marker entity positioned above the polygon
+                        const pinEntity = this.viewer.entities.add({
+                            id: `hazard-pin-${props.hazard_id}`,
+                            name: `${props.display_name} - Pin`,
+                            position: Cesium.Cartesian3.fromDegrees(
+                                centroid[0], 
+                                centroid[1], 
+                                10 // 10 meters above ground (reduced from 50m)
+                            ),
+                            billboard: {
+                                image: './src/assets/icons/MapPin02.png',
+                                scale: 0.4, // Split difference between 0.5 and 0.3
+                                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                                scaleByDistance: new Cesium.NearFarScalar(1000, 0.4, 10000, 0.2) // Adjusted scaling
+                            },
+                            properties: {
+                                hazardData: props
+                            }
+                        });
+
+                        // Create separate label entity positioned to the right of the pin
+                        const labelEntity = this.viewer.entities.add({
+                            id: `hazard-label-${props.hazard_id}`,
+                            name: `${props.display_name} - Label`,
+                            position: Cesium.Cartesian3.fromDegrees(
+                                centroid[0] + 0.0002, // Closer to the pin (about 20m to the right)
+                                centroid[1] + 0.0001, // Slightly up (about 10m north)
+                                20 // Higher than the pin
+                            ),
+                            label: {
+                    text: (() => {
+                        let labelText = props.display_name || props.hazard_type;
+                        // Special case for Legacy burn Pit to display as Legacy Burn Pit
+                        if (labelText === 'Legacy burn Pit') {
+                            labelText = 'Legacy Burn Pit';
+                        }
+                        // Special case for Municiapl water system to display as Municipal Water System
+                        if (labelText === 'Municiapl water system') {
+                            labelText = 'Municipal Water System';
+                        }
+                        // Special case for 'arthropod Vectors to display as Arthropod Vectors
+                        if (labelText === "'arthropod Vectors") {
+                            labelText = 'Arthropod Vectors';
+                        }
+                        // Special case for Engine Testing Pad1 to display as Jet Engine Testing Pad
+                        if (labelText === 'Engine Testing Pad1') {
+                            labelText = 'Jet Engine Testing Pad';
+                        }
+                        // Special case for Histoic Landfill to display as Historic Landfill
+                        if (labelText === 'Histoic Landfill') {
+                            labelText = 'Historic Landfill';
+                        }
+                        // Special case for Feild Training Area to display as Field Training Area
+                        if (labelText === 'Feild Training Area') {
+                            labelText = 'Field Training Area';
+                        }
+                        // Special case for Feild Water System to display as Field Water System
+                        if (labelText === 'Feild Water System') {
+                            labelText = 'Field Water System';
+                        }
+                        return labelText;
+                    })(),
+                                font: '16pt sans-serif',
+                                fillColor: Cesium.Color.BLACK,
+                                outlineColor: Cesium.Color.WHITE,
+                                outlineWidth: 3,
+                                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                                scale: 1.0,
+                                scaleByDistance: new Cesium.NearFarScalar(100, 1.2, 2000, 0.8),
+                                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 25000.0),
+                                show: true,
+                                disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                                backgroundColor: Cesium.Color.WHITE.withAlpha(0.95),
+                                backgroundPadding: new Cesium.Cartesian2(12, 6),
+                                showBackground: true,
+                                horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+                                verticalOrigin: Cesium.VerticalOrigin.CENTER,
+                                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                            },
+                            properties: {
+                                hazardData: props
+                            }
+                        });
+
+                    console.log(`Created polygon entity for ${props.hazard_id}:`, polygonEntity);
+                    console.log(`Polygon positions:`, positions);
+                    console.log(`Polygon color:`, props.color);
+                    console.log(`Polygon show property:`, polygonEntity.show);
+                    console.log(`Polygon polygon.show property:`, polygonEntity.polygon.show);
+                    
+                    // Special debugging for hazards 1, 2, and 3
+                    if (props.hazard_id === 'H1' || props.hazard_id === 'H2' || props.hazard_id === 'H3') {
+                        console.log(`=== SPECIAL DEBUG FOR ${props.hazard_id} ===`);
+                        console.log(`Entity ID: ${polygonEntity.id}`);
+                        console.log(`Entity name: ${polygonEntity.name}`);
+                        console.log(`Entity show: ${polygonEntity.show}`);
+                        console.log(`Polygon show: ${polygonEntity.polygon.show}`);
+                        console.log(`Polygon material: ${polygonEntity.polygon.material}`);
+                        console.log(`Polygon hierarchy: ${polygonEntity.polygon.hierarchy}`);
+                        console.log(`Polygon positions count: ${positions.length}`);
+                        console.log(`First position: ${positions[0]}`);
+                        console.log(`Last position: ${positions[positions.length - 1]}`);
+                        console.log(`Pin entity: ${pinEntity}`);
+                        console.log(`Pin show: ${pinEntity ? pinEntity.show : 'N/A'}`);
+                        console.log(`Pin position: ${pinEntity ? pinEntity.position : 'N/A'}`);
+                        console.log(`=== END SPECIAL DEBUG ===`);
+                    }
+
+                    // Add click handlers for both polygon and pin
+                    this.addHazardClickHandlers(polygonEntity, pinEntity, props);
+
+                    console.log(`Successfully created hazard ${index}: ${props.hazard_id}`);
+
+                } catch (error) {
+                    console.error(`Error rendering hazard feature ${index}:`, error);
+                }
+            }
+
+            createHazardIcon(props) {
+                // Create a simple colored circle icon
+                const canvas = document.createElement('canvas');
+                canvas.width = 64; // Larger canvas
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+
+                // Draw circle
+                ctx.beginPath();
+                ctx.arc(32, 32, 28, 0, 2 * Math.PI); // Larger circle
+                ctx.fillStyle = props.color;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 6; // Thicker border
+                ctx.stroke();
+
+                // Add severity indicator (inner circle)
+                ctx.beginPath();
+                ctx.arc(32, 32, 16, 0, 2 * Math.PI); // Larger inner circle
+                ctx.fillStyle = this.getSeverityColor(props.severity_level);
+                ctx.fill();
+
+                return canvas.toDataURL();
+            }
+
+            getSeverityColor(severity) {
+                const colors = {
+                    1: '#2ecc71', // Green
+                    2: '#f1c40f', // Yellow
+                    3: '#e67e22', // Orange
+                    4: '#e74c3c', // Red
+                    5: '#8e44ad'  // Purple
+                };
+                return colors[severity] || '#95a5a6';
+            }
+
+            addHazardClickHandlers(polygonEntity, pinEntity, props) {
+                // Add click handler for both polygon and pin
+                const clickHandler = (clickedEntity) => {
+                    // Stop proximity checking during zoom to prevent flashing
+                    this.stopProximityCheck();
+                    
+                    this.showHazardInfo(props, clickedEntity, false);
+                    
+                    // Log pin coordinates if it's a pin
+                    if (clickedEntity.id && clickedEntity.id.includes('pin')) {
+                        const pinPosition = clickedEntity.position.getValue(Cesium.JulianDate.now());
+                        if (pinPosition) {
+                            // Convert Cartesian3 to lat/lon
+                            const cartographic = Cesium.Cartographic.fromCartesian(pinPosition);
+                            const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                            const lon = Cesium.Math.toDegrees(cartographic.longitude);
+                            console.log(`Pin coordinates for ${props.hazard_type}:`);
+                            console.log(`  Latitude: ${lat.toFixed(6)}°N`);
+                            console.log(`  Longitude: ${lon.toFixed(6)}°W`);
+                            console.log(`  Cartesian3: x=${pinPosition.x.toFixed(2)}, y=${pinPosition.y.toFixed(2)}, z=${pinPosition.z.toFixed(2)}`);
+                        } else {
+                            console.log('Pin position not available');
+                        }
+                    }
+                    
+                    this.zoomToHazard(clickedEntity, props);
+                };
+
+                // Store click handler for polygon
+                polygonEntity.clickHandler = clickHandler;
+                
+                // Store click handler for pin if it exists
+                if (pinEntity) {
+                    pinEntity.clickHandler = clickHandler;
+                }
+            }
+
+            zoomToHazard(entity, props) {
+                console.log('=== ZOOM TO HAZARD CALLED ===');
+                console.log('Entity ID:', entity.id);
+                console.log('Entity type:', entity.id ? entity.id.split('-')[1] : 'unknown');
+                console.log('Entity name:', entity.name);
+                console.log('Props:', props);
+                
+                try {
+                    let entityPosition = null;
+                    
+                    // Try to get position from entity.position (for pins)
+                    if (entity.position && typeof entity.position.getValue === 'function') {
+                        entityPosition = entity.position.getValue(Cesium.JulianDate.now());
+                        console.log('Got position from entity.position:', entityPosition);
+                    }
+                    
+                    // If no position from entity.position, try to get from polygon hierarchy (for polygons)
+                    if (!entityPosition && entity.polygon && entity.polygon.hierarchy) {
+                        const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
+                        if (hierarchy && hierarchy.positions && hierarchy.positions.length > 0) {
+                            // Calculate center of polygon
+                            let centerX = 0, centerY = 0, centerZ = 0;
+                            hierarchy.positions.forEach(pos => {
+                                centerX += pos.x;
+                                centerY += pos.y;
+                                centerZ += pos.z;
+                            });
+                            centerX /= hierarchy.positions.length;
+                            centerY /= hierarchy.positions.length;
+                            centerZ /= hierarchy.positions.length;
+                            
+                            entityPosition = new Cesium.Cartesian3(centerX, centerY, centerZ);
+                            console.log('Calculated center from polygon hierarchy:', entityPosition);
+                        }
+                    }
+                    
+                    // If still no position, try bounding sphere center
+                    if (!entityPosition && entity.boundingSphere) {
+                        entityPosition = entity.boundingSphere.center;
+                        console.log('Using bounding sphere center:', entityPosition);
+                    }
+                    
+                    if (entityPosition) {
+                        console.log('=== ENTITY POSITION DEBUG ===');
+                        console.log('Entity position (Cartesian3):', entityPosition);
+                        console.log('Entity position x:', entityPosition.x);
+                        console.log('Entity position y:', entityPosition.y);
+                        console.log('Entity position z:', entityPosition.z);
+                        
+                        // Convert to lat/lon for verification
+                        const cartographic = Cesium.Cartographic.fromCartesian(entityPosition);
+                        const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                        const lon = Cesium.Math.toDegrees(cartographic.longitude);
+                        console.log('Entity location (lat/lon):', lat.toFixed(6) + '°N, ' + lon.toFixed(6) + '°W');
+                        
+                        // Use lat/lon coordinates with overhead view
+                        const height = 2500; // Camera height for hazard viewing
+                        console.log('Creating target position with lat/lon:', lat.toFixed(6), lon.toFixed(6), `height: ${height}m`);
+                        const targetPosition = Cesium.Cartesian3.fromDegrees(lon, lat, height);
+                        console.log('Target position created:', targetPosition);
+                        
+                        console.log('=== TARGET CAMERA POSITION DEBUG ===');
+                        console.log('Target position (Cartesian3):', targetPosition);
+                        console.log('Target position x:', targetPosition.x);
+                        console.log('Target position y:', targetPosition.y);
+                        console.log('Target position z:', targetPosition.z);
+                        
+                        // Convert target position to lat/lon for verification
+                        const targetCartographic = Cesium.Cartographic.fromCartesian(targetPosition);
+                        const targetLat = Cesium.Math.toDegrees(targetCartographic.latitude);
+                        const targetLon = Cesium.Math.toDegrees(targetCartographic.longitude);
+                        console.log('Target camera location (lat/lon):', targetLat.toFixed(6) + '°N, ' + targetLon.toFixed(6) + '°W');
+                        console.log('Target camera height:', targetCartographic.height.toFixed(2) + 'm');
+                        
+                        // Log current camera position for comparison
+                        const currentPosition = this.viewer.camera.position;
+                        const currentCartographic = Cesium.Cartographic.fromCartesian(currentPosition);
+                        const currentLat = Cesium.Math.toDegrees(currentCartographic.latitude);
+                        const currentLon = Cesium.Math.toDegrees(currentCartographic.longitude);
+                        console.log('Current camera location:', currentLat.toFixed(6) + '°N, ' + currentLon.toFixed(6) + '°W');
+                        console.log('Current camera height:', currentCartographic.height.toFixed(2) + 'm');
+                        
+                        // Fly directly to the Cartesian3 position with overhead view
+                        this.viewer.camera.flyTo({
+                            destination: targetPosition,
+                            orientation: {
+                                heading: 0.0,
+                                pitch: Cesium.Math.toRadians(-90), // Straight down overhead view
+                                roll: 0.0
+                            },
+                            duration: 2.5
+                        });
+                        
+                        // Use a timeout to check final position after animation
+                        setTimeout(() => {
+                            console.log('=== CAMERA FLYTO COMPLETED (after 2.5s) ===');
+                            const finalPosition = this.viewer.camera.position;
+                            const finalCartographic = Cesium.Cartographic.fromCartesian(finalPosition);
+                            const finalLat = Cesium.Math.toDegrees(finalCartographic.latitude);
+                            const finalLon = Cesium.Math.toDegrees(finalCartographic.longitude);
+                            console.log('Final camera location:', finalLat.toFixed(6) + '°N, ' + finalLon.toFixed(6) + '°W');
+                            console.log('Final camera height:', finalCartographic.height.toFixed(2) + 'm');
+                            
+                            // Restart proximity checking after zoom completes
+                            this.startProximityCheck();
+                        }, 2500);
+                        
+                        console.log('Camera flyTo initiated to target position');
+                        return;
+                    }
+                    
+                    // Final fallback: use bounding sphere if available
+                    const boundingSphere = entity.boundingSphere;
+                    if (boundingSphere) {
+                        console.log('=== BOUNDING SPHERE DEBUG ===');
+                        console.log('Using bounding sphere for zoom');
+                        console.log('Bounding sphere center:', boundingSphere.center);
+                        console.log('Bounding sphere radius:', boundingSphere.radius);
+                        
+                        this.viewer.camera.viewBoundingSphere(
+                            boundingSphere, 
+                            new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-90), 2000)
+                        );
+                        return;
+                    }
+                    
+                    console.log('No position or bounding sphere available');
+                    
+                } catch (error) {
+                    console.error('Error zooming to hazard:', error);
+                }
+            }
+
+            calculatePolygonBounds(coordinates) {
+                if (!coordinates || coordinates.length < 2) {
+                    return { width: 1000, height: 1000 }; // Default size
+                }
+                
+                let minLon = coordinates[0][0];
+                let maxLon = coordinates[0][0];
+                let minLat = coordinates[0][1];
+                let maxLat = coordinates[0][1];
+                
+                // Find bounds
+                for (let i = 1; i < coordinates.length; i++) {
+                    const [lon, lat] = coordinates[i];
+                    minLon = Math.min(minLon, lon);
+                    maxLon = Math.max(maxLon, lon);
+                    minLat = Math.min(minLat, lat);
+                    maxLat = Math.max(maxLat, lat);
+                }
+                
+                // Convert to meters (approximate)
+                const centerLat = (minLat + maxLat) / 2;
+                const latToMeters = 111320; // meters per degree latitude
+                const lonToMeters = 111320 * Math.cos(centerLat * Math.PI / 180); // meters per degree longitude
+                
+                const width = (maxLon - minLon) * lonToMeters;
+                const height = (maxLat - minLat) * latToMeters;
+                
+                return { width, height };
+            }
+
+            zoomToAllHazards() {
+                try {
+                    // Get all hazard entities
+                    const hazardEntities = this.viewer.entities.values.filter(entity => 
+                        entity.id && entity.id.startsWith('H')
+                    );
+                    
+                    if (hazardEntities.length > 0) {
+                        // Create a bounding sphere that encompasses all hazards
+                        const boundingSpheres = hazardEntities
+                            .map(entity => entity.boundingSphere)
+                            .filter(bs => bs !== undefined);
+                        
+                        if (boundingSpheres.length > 0) {
+                            // Calculate combined bounding sphere
+                            const combinedBoundingSphere = Cesium.BoundingSphere.fromBoundingSpheres(boundingSpheres);
+                            
+                            // Set camera to view all hazards with proper distance
+                            const distance = Math.max(combinedBoundingSphere.radius * 2, 5000); // At least 5km
+                            
+                            this.viewer.camera.viewBoundingSphere(combinedBoundingSphere, new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), distance));
+                            
+                            console.log(`Zoomed to all hazards at distance: ${distance}m`);
+                        } else {
+                            // Fallback to initial position
+                            this.viewer.camera.setView({
+                                destination: Cesium.Cartesian3.fromDegrees(
+                                    this.config.initialPosition.longitude,
+                                    this.config.initialPosition.latitude,
+                                    this.config.initialPosition.height
+                                ),
+                                orientation: {
+                                    heading: 0.0,
+                                    pitch: Cesium.Math.toRadians(-90),
+                                    roll: 0.0
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error zooming to all hazards:', error);
+                    // Fallback to initial position
+                    this.viewer.camera.setView({
+                        destination: Cesium.Cartesian3.fromDegrees(
+                            this.config.initialPosition.longitude,
+                            this.config.initialPosition.latitude,
+                            this.config.initialPosition.height
+                        ),
+                        orientation: {
+                            heading: 0.0,
+                            pitch: Cesium.Math.toRadians(-90),
+                            roll: 0.0
+                        }
+                    });
+                }
+            }
+
+            logAllPinCoordinates() {
+                console.log('=== ALL PIN COORDINATES ===');
+                const entities = this.viewer.entities.values;
+                const pinEntities = entities.filter(entity => 
+                    entity.id && entity.id.includes('hazard-pin')
+                );
+                
+                pinEntities.forEach((pinEntity, index) => {
+                    const pinPosition = pinEntity.position.getValue(Cesium.JulianDate.now());
+                    if (pinPosition) {
+                        const cartographic = Cesium.Cartographic.fromCartesian(pinPosition);
+                        const lat = Cesium.Math.toDegrees(cartographic.latitude);
+                        const lon = Cesium.Math.toDegrees(cartographic.longitude);
+                        
+                        console.log(`${index + 1}. ${pinEntity.name}:`);
+                        console.log(`   Latitude: ${lat.toFixed(6)}°N`);
+                        console.log(`   Longitude: ${lon.toFixed(6)}°W`);
+                        console.log(`   Hazard ID: ${pinEntity.id}`);
+                        console.log('');
+                    }
+                });
+                
+                console.log('=== END PIN COORDINATES ===');
+            }
+
+            // Navigation methods
+            navigateToHazard(direction) {
+                console.log('=== NAVIGATION DEBUG ===');
+                console.log('Direction:', direction);
+                console.log('Current index:', this.currentHazardIndex);
+                console.log('Hazard data length:', this.hazardData ? this.hazardData.length : 'undefined');
+                console.log('Hazard data:', this.hazardData);
+                
+                if (!this.hazardData || this.hazardData.length === 0) {
+                    console.log('No hazard data available for navigation');
+                    return;
+                }
+                
+                // Stop proximity checking during navigation to prevent interference
+                this.stopProximityCheck();
+                
+                // Update current index
+                this.currentHazardIndex += direction;
+                
+                // Wrap around
+                if (this.currentHazardIndex < 0) {
+                    this.currentHazardIndex = this.hazardData.length - 1;
+                } else if (this.currentHazardIndex >= this.hazardData.length) {
+                    this.currentHazardIndex = 0;
+                }
+                
+                console.log('New index:', this.currentHazardIndex);
+                
+                // Get current hazard data
+                const currentHazard = this.hazardData[this.currentHazardIndex];
+                console.log('Current hazard:', currentHazard);
+                
+                // Update counter
+                const counterElement = document.getElementById('hazardCounter');
+                if (counterElement) {
+                    counterElement.textContent = `${this.currentHazardIndex + 1} of ${this.hazardData.length}`;
+                }
+                
+                // Find and zoom to the hazard entity
+                const hazardId = currentHazard.properties.hazard_id;
+                console.log('Looking for entity with ID:', `hazard-polygon-${hazardId}`);
+                
+                // Try multiple ways to find the polygon entity
+                let polygonEntity = this.viewer.entities.getById(`hazard-polygon-${hazardId}`);
+                
+                if (!polygonEntity) {
+                    // Try alternative ID format
+                    polygonEntity = this.viewer.entities.getById(`hazard-polygon-H${hazardId.replace('H', '')}`);
+                }
+                
+                if (!polygonEntity) {
+                    // Search through all entities to find matching polygon
+                    const allEntities = this.viewer.entities.values;
+                    polygonEntity = allEntities.find(entity => 
+                        entity.id && entity.id.includes('polygon') && entity.id.includes(hazardId)
+                    );
+                }
+                
+                console.log('Found polygon entity:', polygonEntity);
+                
+                // Update info box - use polygonEntity for info display, but don't start proximity check yet
+                this.showHazardInfo(currentHazard.properties, polygonEntity, false);
+                
+                // For proximity checking, we need an entity with a position (pin entity)
+                const pinEntity = this.viewer.entities.getById(`hazard-pin-${hazardId}`);
+                if (pinEntity) {
+                    this.currentHazardEntity = pinEntity;
+                } else {
+                    this.currentHazardEntity = polygonEntity; // Fallback to polygon entity
+                }
+                
+                if (polygonEntity) {
+                    console.log('Calling zoomToHazard for navigation...');
+                    this.zoomToHazard(polygonEntity, currentHazard.properties);
+                } else {
+                    console.log('Polygon entity not found for hazard ID:', hazardId);
+                    // List all available entities for debugging
+                    const allEntities = this.viewer.entities.values;
+                    console.log('All available entities:');
+                    allEntities.forEach(entity => {
+                        if (entity.id) {
+                            console.log(`  - ${entity.id}: ${entity.name}`);
+                        }
+                    });
+                    
+                    // Try to use the hazard coordinates directly if entity not found
+                    console.log('Attempting to zoom using hazard coordinates directly...');
+                    if (currentHazard.geometry && currentHazard.geometry.coordinates) {
+                        this.zoomToHazardCoordinates(currentHazard.geometry.coordinates[0], currentHazard.properties);
+                    }
+                }
+            }
+
+            // Alternative zoom method using coordinates directly
+            zoomToHazardCoordinates(coordinates, props) {
+                console.log('=== ZOOM TO HAZARD COORDINATES ===');
+                console.log('Coordinates:', coordinates);
+                console.log('Props:', props);
+                
+                try {
+                    // Calculate center of polygon
+                    let centerLat = 0;
+                    let centerLon = 0;
+                    
+                    coordinates.forEach(coord => {
+                        centerLon += coord[0];
+                        centerLat += coord[1];
+                    });
+                    
+                    centerLon /= coordinates.length;
+                    centerLat /= coordinates.length;
+                    
+                    console.log('Calculated center:', centerLat.toFixed(6), centerLon.toFixed(6));
+                    
+                    // Create target position
+                    const height = 2500;
+                    const targetPosition = Cesium.Cartesian3.fromDegrees(centerLon, centerLat, height);
+                    
+                    console.log('Flying to coordinates:', centerLat.toFixed(6), centerLon.toFixed(6), `height: ${height}m`);
+                    
+                    // Fly to the calculated position
+                    this.viewer.camera.flyTo({
+                        destination: targetPosition,
+                        orientation: {
+                            heading: 0.0,
+                            pitch: Cesium.Math.toRadians(-90), // Straight down overhead view
+                            roll: 0.0
+                        },
+                        duration: 2.5
+                    });
+                    
+                    console.log('Camera flyTo initiated to coordinates');
+                    
+                } catch (error) {
+                    console.error('Error zooming to hazard coordinates:', error);
+                }
+            }
+
+            updateNavigationButtons() {
+                const prevBtn = document.getElementById('prevHazard');
+                const nextBtn = document.getElementById('nextHazard');
+                
+                if (prevBtn && nextBtn) {
+                    // Enable/disable buttons based on current position
+                    prevBtn.disabled = this.hazardData.length <= 1;
+                    nextBtn.disabled = this.hazardData.length <= 1;
+                }
+            }
+
+            // Start proximity checking for info panel fade
+            startProximityCheck() {
+                if (this.proximityCheckInterval) {
+                    clearInterval(this.proximityCheckInterval);
+                }
+                
+                this.proximityCheckInterval = setInterval(() => {
+                    this.checkProximityToHazard();
+                }, 100); // Check every 100ms
+                
+                // Also listen for camera movement to ensure proximity check continues
+                this.viewer.camera.moveEnd.addEventListener(() => {
+                    this.checkProximityToHazard();
+                });
+            }
+
+            // Stop proximity checking
+            stopProximityCheck() {
+                if (this.proximityCheckInterval) {
+                    clearInterval(this.proximityCheckInterval);
+                    this.proximityCheckInterval = null;
+                }
+                this.currentHazardEntity = null;
+            }
+            
+            // Reset proximity check - useful for debugging
+            resetProximityCheck() {
+                console.log('Resetting proximity check...');
+                this.stopProximityCheck();
+                const infoBox = document.getElementById('clickInfoBox');
+                if (infoBox) {
+                    infoBox.style.opacity = '1';
+                    infoBox.style.visibility = 'visible';
+                }
+            }
+
+            // Check proximity to any hazard polygon
+            checkProximityToHazard() {
+                if (!this.viewer) {
+                    return;
+                }
+                
+                // Check if info box exists
+                const infoBox = document.getElementById('clickInfoBox');
+                if (!infoBox) {
+                    console.log('Proximity check: Info box not found, stopping');
+                    return;
+                }
+                
+                // Don't stop if panel is hidden - we want to be able to make it visible again
+                if (infoBox.style.display === 'none') {
+                    console.log('Proximity check: Info box display is none, stopping');
+                    return;
+                }
+
+                const cameraPosition = this.viewer.camera.position;
+                let closestHazard = null;
+                let closestDistance = Infinity;
+
+                // Check all hazard entities to find the closest one
+                this.viewer.entities.values.forEach(entity => {
+                    if (entity.id && entity.id.startsWith('hazard-polygon-')) {
+                        let hazardPosition = null;
+
+                        // Get hazard position (try different methods)
+                        if (entity.position && typeof entity.position.getValue === 'function') {
+                            hazardPosition = entity.position.getValue(Cesium.JulianDate.now());
+                        } else if (entity.polygon && entity.polygon.hierarchy) {
+                            const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
+                            if (hierarchy && hierarchy.positions && hierarchy.positions.length > 0) {
+                                // Calculate center of polygon
+                                let centerX = 0, centerY = 0, centerZ = 0;
+                                hierarchy.positions.forEach(pos => {
+                                    centerX += pos.x;
+                                    centerY += pos.y;
+                                    centerZ += pos.z;
+                                });
+                                centerX /= hierarchy.positions.length;
+                                centerY /= hierarchy.positions.length;
+                                centerZ /= hierarchy.positions.length;
+                                hazardPosition = new Cesium.Cartesian3(centerX, centerY, centerZ);
+                            }
+                        }
+
+                        if (hazardPosition) {
+                            const distance = Cesium.Cartesian3.distance(cameraPosition, hazardPosition);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestHazard = entity;
+                            }
+                        }
+                    }
+                });
+
+                // If we found a hazard within range, show its info
+                if (closestHazard && closestDistance <= this.fadeDistance) {
+                    // Extract hazard ID from entity ID
+                    const hazardId = closestHazard.id.replace('hazard-polygon-', '');
+                    
+                    // Find the corresponding hazard data
+                    const hazardData = this.hazardData.find(h => h.properties.hazard_id === hazardId);
+                    if (hazardData) {
+                        // Update current hazard index
+                        this.currentHazardIndex = this.hazardData.indexOf(hazardData);
+                        
+                        // Show info for this hazard
+                        this.showHazardInfo(hazardData.properties, closestHazard);
+                        
+                        // Keep at full opacity (no fade)
+                        this.updateInfoPanelOpacity(1.0);
+                        
+                        console.log('Proximity check - Showing hazard:', hazardId, 'Distance:', closestDistance.toFixed(2), 'm');
+                    }
+                } else {
+                    // No hazard in range, hide the panel
+                    this.updateInfoPanelOpacity(0.0);
+                    console.log('Proximity check - No hazard in range, hiding panel. Closest distance:', closestDistance.toFixed(2), 'm');
+                }
+            }
+
+            // Update info panel opacity
+            updateInfoPanelOpacity(opacity) {
+                const infoBox = document.getElementById('clickInfoBox');
+                if (infoBox) {
+                    console.log('Updating info panel opacity to:', opacity);
+                    infoBox.style.opacity = opacity;
+                    infoBox.style.transition = 'opacity 0.3s ease-in-out';
+                    
+                    // If opacity is 0, hide the panel completely
+                    if (opacity <= 0) {
+                        infoBox.style.visibility = 'hidden';
+                    } else {
+                        infoBox.style.visibility = 'visible';
+                    }
+                    
+                    console.log('Info panel visibility set to:', infoBox.style.visibility);
+                }
+            }
+
+                showHazardInfo(props, entity, startProximityCheck = true) {
+                    console.log('Showing hazard info:', props);
+                    
+                    // Set current hazard entity for proximity checking
+                    this.currentHazardEntity = entity;
+                    
+                    // Start proximity checking only if requested (not during zoom)
+                    if (startProximityCheck) {
+                        this.startProximityCheck();
+                    }
+                    
+                    // Update current hazard index if this is from a click
+                    if (entity) {
+                        const hazardId = props.hazard_id;
+                        const hazardIndex = this.hazardData.findIndex(hazard => hazard.properties.hazard_id === hazardId);
+                        if (hazardIndex !== -1) {
+                            this.currentHazardIndex = hazardIndex;
+                        }
+                    }
+                    
+                    // Update click info box
+                    const clickInfoBox = document.getElementById('clickInfoBox');
+                    if (clickInfoBox) {
+                        // Get detailed information based on hazard ID/type
+                        const detailedInfo = this.getDetailedHazardInfo(props);
+                        
+                        // Update all the info fields with actual data from GeoJSON
+                        // Apply special case corrections BEFORE setting the title to prevent flashing
+                        let displayTitle = props.display_name || props.hazard_type || 'Unknown Hazard';
+                        
+                        // Apply all special case corrections
+                        if (displayTitle === 'Engine Testing Pad1') {
+                            displayTitle = 'Jet Engine Testing Pad';
+                        } else if (displayTitle === 'Histoic Landfill') {
+                            displayTitle = 'Historic Landfill';
+                        } else if (displayTitle === 'Feild Training Area') {
+                            displayTitle = 'Field Training Area';
+                        } else if (displayTitle === 'Feild Water System') {
+                            displayTitle = 'Field Water System';
+                        } else if (displayTitle === 'Legacy burn Pit') {
+                            displayTitle = 'Legacy Burn Pit';
+                        } else if (displayTitle === 'Municiapl water system') {
+                            displayTitle = 'Municipal Water System';
+                        } else if (displayTitle === "'arthropod Vectors") {
+                            displayTitle = 'Arthropod Vectors';
+                        }
+                        document.getElementById('infoBoxTitle').textContent = displayTitle;
+                        document.getElementById('infoBoxMedium').textContent = detailedInfo.environmentalMedium || 'Not specified';
+                        document.getElementById('infoBoxHealthThreat').textContent = detailedInfo.healthThreat;
+                        document.getElementById('infoBoxExposureRoute').textContent = detailedInfo.exposureRoute;
+                        document.getElementById('infoBoxPopulation').textContent = detailedInfo.populationAffected;
+                        document.getElementById('infoBoxControls').textContent = detailedInfo.existingControls;
+                        document.getElementById('infoBoxFreqDuration').textContent = detailedInfo.freqDuration;
+                        document.getElementById('infoBoxSeverity').textContent = detailedInfo.severity || 'Unknown';
+                        document.getElementById('infoBoxProbability').textContent = detailedInfo.probability;
+                        
+                        // Position the info box 250px to the right of the clicked entity
+                        if (entity && entity.position) {
+                            const entityPosition = entity.position.getValue(Cesium.JulianDate.now());
+                            if (entityPosition) {
+                                // Convert 3D position to screen coordinates using camera projection
+                                let screenPosition = null;
+                                try {
+                                    screenPosition = Cesium.SceneTransforms.wgs84ToWindowCoordinates(this.viewer.scene, entityPosition);
+                                } catch (error) {
+                                    console.log('wgs84ToWindowCoordinates not available, using fallback');
+                                    screenPosition = null; // Will trigger fallback positioning
+                                }
+                                if (screenPosition) {
+                                    // Position info box 250px to the right of the entity
+                                    clickInfoBox.style.left = (screenPosition.x + 250) + 'px';
+                                    clickInfoBox.style.top = (screenPosition.y - 50) + 'px'; // Center vertically
+                                    clickInfoBox.style.right = 'auto'; // Remove right positioning
+                                } else {
+                                    // Fallback: position in top-right corner below title bar area
+                                    clickInfoBox.style.left = 'auto';
+                                    clickInfoBox.style.top = '120px';
+                                    clickInfoBox.style.right = '20px';
+                                }
+                            } else {
+                                // Fallback: position in top-right corner below title bar area
+                                clickInfoBox.style.left = 'auto';
+                                clickInfoBox.style.top = '120px';
+                                clickInfoBox.style.right = '20px';
+                            }
+                        } else {
+                            // Fallback: position in top-right corner below title bar area
+                            clickInfoBox.style.left = 'auto';
+                            clickInfoBox.style.top = '120px';
+                            clickInfoBox.style.right = '20px';
+                        }
+                        
+                        // Show the info box
+                        clickInfoBox.classList.remove('hidden');
+                    }
+                }
+
+
+                getDetailedHazardInfo(props) {
+                    // Map hazard names to detailed BEO CSM information from Excel data
+                    // Note: Detailed data comes from BEO OEHSA CSM Injects.xlsx file
+                    const hazardDetails = {
+                        1: {
+                            source: "Engine Testing Pad1",
+                            environmentalMedium: "Auditory",
+                            healthThreat: "Noise-Induced Hearing Loss",
+                            exposureRoute: "Auditory",
+                            populationAffected: "Flightline Maintainers",
+                            existingControls: "HPDs, duty limits",
+                            freqDuration: "Daily/8hrs",
+                            severity: "Critical (II)",
+                            probability: "Frequent (A)",
+                            risk: "Extremely High"
+                        },
+                        2: {
+                            source: "Aircraft fuel tanks",
+                            environmentalMedium: "Soil/Groundwater",
+                            healthThreat: "Benzene exposure",
+                            exposureRoute: "Inhalation, Dermal",
+                            populationAffected: "Firefighters, POL",
+                            existingControls: "Secondary containment",
+                            freqDuration: "Rare spills",
+                            severity: "Marginal (III)",
+                            probability: "Occasional (C)",
+                            risk: "Moderate"
+                        },
+                        3: {
+                            source: "Legacy burn pit",
+                            environmentalMedium: "Soil/Air",
+                            healthThreat: "Dioxins/PM",
+                            exposureRoute: "Inhalation, Dermal",
+                            populationAffected: "Nearby Housing",
+                            existingControls: "Fence, ash cap",
+                            freqDuration: "Seasonal wind",
+                            severity: "Critical (II)",
+                            probability: "Likely (B)",
+                            risk: "High"
+                        },
+                        4: {
+                            source: "Welding shop",
+                            environmentalMedium: "Air",
+                            healthThreat: "Manganese/Cr6+",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Fabricators",
+                            existingControls: "LEV, PPE, IH surveys",
+                            freqDuration: "Constant",
+                            severity: "Critical (II)",
+                            probability: "Frequent (A)",
+                            risk: "Extremely High"
+                        },
+                        5: {
+                            source: "Municipal Water System",
+                            environmentalMedium: "Surface Water",
+                            healthThreat: "Pathogens, nutrients",
+                            exposureRoute: "Ingestion, Dermal",
+                            populationAffected: "Downstream community",
+                            existingControls: "Chlorination, signage",
+                            freqDuration: "Continuous",
+                            severity: "Critical (II)",
+                            probability: "Seldom (D)",
+                            risk: "Moderate"
+                        },
+                        6: {
+                            source: "Seasonal Forest Fire",
+                            environmentalMedium: "Air",
+                            healthThreat: "PM2.5",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "All base population",
+                            existingControls: "AQI alerts",
+                            freqDuration: "Annual",
+                            severity: "Critical (II)",
+                            probability: "Occasional (C)",
+                            risk: "High"
+                        },
+                        7: {
+                            source: "Base CATM Range",
+                            environmentalMedium: "Soil",
+                            healthThreat: "Lead, noise",
+                            exposureRoute: "Inhalation, Ingestion",
+                            populationAffected: "Instructors, trainees",
+                            existingControls: "PPE, HEPA vacs",
+                            freqDuration: "Daily",
+                            severity: "Critical (II)",
+                            probability: "Frequent (A)",
+                            risk: "Extremely High"
+                        },
+                        8: {
+                            source: "Fuel truck refueling",
+                            environmentalMedium: "Air",
+                            healthThreat: "VOC vapor, spills",
+                            exposureRoute: "Inhalation, Dermal",
+                            populationAffected: "POL, Drivers",
+                            existingControls: "SOPs, spill kits",
+                            freqDuration: "Daily",
+                            severity: "Critical (II)",
+                            probability: "Likely (B)",
+                            risk: "High"
+                        },
+                        9: {
+                            source: "Field Water Supply System",
+                            environmentalMedium: "Surface Water",
+                            healthThreat: "Propylene glycol",
+                            exposureRoute: "Ingestion",
+                            populationAffected: "Aquatic life, public",
+                            existingControls: "Stormwater BMPs",
+                            freqDuration: "Winter season",
+                            severity: "Marginal (III)",
+                            probability: "Occasional (C)",
+                            risk: "Moderate"
+                        },
+                        10: {
+                            source: "Warehouse",
+                            environmentalMedium: "Indoor Air",
+                            healthThreat: "Mold, dust",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Logistics workers",
+                            existingControls: "Dehumidifiers, filters",
+                            freqDuration: "Variable",
+                            severity: "Marginal (III)",
+                            probability: "Occasional (C)",
+                            risk: "Moderate"
+                        },
+                        11: {
+                            source: "Cryogenics Shop",
+                            environmentalMedium: "Indoor Air",
+                            healthThreat: "Asphyxiation",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Cryo techs",
+                            existingControls: "Monitors, ventilation",
+                            freqDuration: "Weekly tasks",
+                            severity: "Catastrophic (I)",
+                            probability: "Seldom (D)",
+                            risk: "High"
+                        },
+                        12: {
+                            source: "Historic Landfill",
+                            environmentalMedium: "Groundwater",
+                            healthThreat: "Leachate (VOCs, metals)",
+                            exposureRoute: "Ingestion",
+                            populationAffected: "Community well users",
+                            existingControls: "Monitoring wells",
+                            freqDuration: "Legacy source",
+                            severity: "Critical (II)",
+                            probability: "Seldom (D)",
+                            risk: "Moderate"
+                        },
+                        13: {
+                            source: "Battery Storage",
+                            environmentalMedium: "Air/Surface",
+                            healthThreat: "Acid mist, Pb dust",
+                            exposureRoute: "Dermal, Inhalation",
+                            populationAffected: "Civil Engineers",
+                            existingControls: "PPE, vent hoods",
+                            freqDuration: "Weekly",
+                            severity: "Marginal (III)",
+                            probability: "Occasional (C)",
+                            risk: "Moderate"
+                        },
+                        14: {
+                            source: "Satellite comms dish",
+                            environmentalMedium: "Radiation",
+                            healthThreat: "RF hazard",
+                            exposureRoute: "External",
+                            populationAffected: "Comm technicians",
+                            existingControls: "Time-distance-shielding",
+                            freqDuration: "Monthly access",
+                            severity: "Marginal (III)",
+                            probability: "Seldom (D)",
+                            risk: "Low"
+                        },
+                        15: {
+                            source: "Pest Control",
+                            environmentalMedium: "Auditory",
+                            healthThreat: "Pesticide residues",
+                            exposureRoute: "Dermal, Inhalation",
+                            populationAffected: "Shoppers, workers",
+                            existingControls: "Labeling, limited app",
+                            freqDuration: "Weekly",
+                            severity: "Marginal (III)",
+                            probability: "Seldom (D)",
+                            risk: "Low"
+                        },
+                        16: {
+                            source: "Gym Sauna",
+                            environmentalMedium: "Air",
+                            healthThreat: "Mold spores, heat stress",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Athletes",
+                            existingControls: "Time limits, cleaning",
+                            freqDuration: "Daily",
+                            severity: "Negligible (IV)",
+                            probability: "Frequent (A)",
+                            risk: "Moderate"
+                        },
+                        17: {
+                            source: "Aircraft Mx Paint Booth",
+                            environmentalMedium: "Air",
+                            healthThreat: "Toluene, xylene",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Painters",
+                            existingControls: "LEV, cartridge masks",
+                            freqDuration: "Daily",
+                            severity: "Critical (II)",
+                            probability: "Likely (B)",
+                            risk: "High"
+                        },
+                        18: {
+                            source: "Chemical Lab",
+                            environmentalMedium: "Surfaces",
+                            healthThreat: "Corrosives, toxics",
+                            exposureRoute: "Dermal, Inhalation",
+                            populationAffected: "Lab staff",
+                            existingControls: "SOPs, eyewash",
+                            freqDuration: "Daily",
+                            severity: "Critical (II)",
+                            probability: "Occasional (C)",
+                            risk: "High"
+                        },
+                        19: {
+                            source: "Mechanical Shop",
+                            environmentalMedium: "Air/Surfaces",
+                            healthThreat: "Solvent vapors",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Maintainers",
+                            existingControls: "LEV, respirators",
+                            freqDuration: "Daily",
+                            severity: "Marginal (III)",
+                            probability: "Occasional (C)",
+                            risk: "Moderate"
+                        },
+                        20: {
+                            source: "Gate Area",
+                            environmentalMedium: "Air",
+                            healthThreat: "CO, particulates",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Commuters, gate guards",
+                            existingControls: "Vehicle standards",
+                            freqDuration: "Constant",
+                            severity: "Marginal (III)",
+                            probability: "Frequent (A)",
+                            risk: "High"
+                        },
+                        21: {
+                            source: "Field Training Area",
+                            environmentalMedium: "Soil/Dust",
+                            healthThreat: "Valley fever (fungal spores)",
+                            exposureRoute: "Inhalation",
+                            populationAffected: "Trainees",
+                            existingControls: "Watering, timing",
+                            freqDuration: "Dry season",
+                            severity: "Critical (II)",
+                            probability: "Seldom (D)",
+                            risk: "Moderate"
+                        },
+                        22: {
+                            source: "Medical X-ray",
+                            environmentalMedium: "Radiation",
+                            healthThreat: "Ionizing radiation",
+                            exposureRoute: "External",
+                            populationAffected: "Staff, patients",
+                            existingControls: "Shielding, badges",
+                            freqDuration: "Daily",
+                            severity: "Critical (II)",
+                            probability: "Unlikely (E)",
+                            risk: "Low"
+                        },
+                        23: {
+                            source: "HazMat Storage Area",
+                            environmentalMedium: "Soil/Surfaces",
+                            healthThreat: "Drip leaks",
+                            exposureRoute: "Dermal",
+                            populationAffected: "CE, HAZWASTE",
+                            existingControls: "Spill pallets",
+                            freqDuration: "Quarterly",
+                            severity: "Marginal (III)",
+                            probability: "Seldom (D)",
+                            risk: "Low"
+                        },
+                        24: {
+                            source: "Municipal Water System",
+                            environmentalMedium: "Water",
+                            healthThreat: "Chlorine residual",
+                            exposureRoute: "Ingestion",
+                            populationAffected: "All base",
+                            existingControls: "Online monitors",
+                            freqDuration: "Continuous",
+                            severity: "Marginal (III)",
+                            probability: "Unlikely (E)",
+                            risk: "Low"
+                        },
+                        25: {
+                            source: "Arthropod Vectors",
+                            environmentalMedium: "Air/Biological",
+                            healthThreat: "Vector-borne disease",
+                            exposureRoute: "Insect bites",
+                            populationAffected: "Outdoor personnel",
+                            existingControls: "Repellent, Bti spray",
+                            freqDuration: "Summer",
+                            severity: "Critical (II)",
+                            probability: "Occasional (C)",
+                            risk: "High"
+                        }
+                    };
+
+                    // Get the hazard name from props (this comes from the GeoJSON Name field)
+                    const hazardName = props.display_name || props.hazard_type || props.Name;
+                    
+                    // Map hazard names to detailed info
+                    const nameToDetails = {
+                        'Gate Area': hazardDetails[20],
+                        'Gym Sauna': hazardDetails[16],
+                        'Engine Testing Pad1': hazardDetails[1],
+                        'Aircraft Fuel Tanks': hazardDetails[2],
+                        'Legacy Burn Pit': hazardDetails[3],
+                        'Welding Shop': hazardDetails[4],
+                        'Municipal Water Supply': hazardDetails[5],
+                        'Fuel truck refueling': hazardDetails[8],
+                        'Forest Fire': hazardDetails[6],
+                        'CATM Range': hazardDetails[7],
+                        'Field Water System': hazardDetails[9],
+                        'Warehouse': hazardDetails[10],
+                        'Historic Landfill': hazardDetails[12],
+                        'Cryogenics Shop': hazardDetails[11],
+                        'Medical X-ray': hazardDetails[22],
+                        'Field Training Area': hazardDetails[21],
+                        'Battery Storage': hazardDetails[13],
+                        'Satellite Comms Dish': hazardDetails[14],
+                        'Pest Control': hazardDetails[15],
+                        'Paint Shop': hazardDetails[17],
+                        'Chemical Lab': hazardDetails[18],
+                        'Mechanical Shop': hazardDetails[19],
+                        'HazMat Storage Area': hazardDetails[23],
+                        'Municipal Water System': hazardDetails[24]
+                    };
+                    
+                    // Return detailed info if available, otherwise use props
+                    if (nameToDetails[hazardName]) {
+                        return nameToDetails[hazardName];
+                    } else {
+                        // Fallback to original props with new structure
+                        return {
+                            source: props.display_name || props.hazard_type || 'Unknown Hazard',
+                            environmentalMedium: props.environmental_medium || 'Unknown',
+                            healthThreat: 'Assessment required',
+                            exposureRoute: 'To be determined',
+                            populationAffected: 'Base personnel',
+                            existingControls: 'Under review',
+                            freqDuration: 'Ongoing',
+                            severity: props.severity_level || 'Unknown',
+                            probability: 'To be assessed',
+                            risk: 'Under evaluation'
+                        };
+                    }
+                }
+            }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new OEHSAHazardMap();
+            app.init();
+            
+            // Add global functions for debugging
+            window.hazardMap = app;
+            window.resetProximityCheck = () => {
+                if (window.hazardMap) {
+                    window.hazardMap.resetProximityCheck();
+                }
+            };
+        });
+    </script>
+</body>
+</html>
