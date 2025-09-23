@@ -107,7 +107,7 @@
             min-width: 1200px;
             border-collapse: collapse;
             margin-bottom: 0;
-            font-size: 12px;
+            font-size: 14px;
         }
 
         .csm-form-table th {
@@ -116,7 +116,7 @@
             padding: 10px 6px;
             text-align: center;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 14px;
             color: #495057;
         }
 
@@ -133,7 +133,7 @@
             min-width: 80px;
             border: none;
             background: transparent;
-            font-size: 12px;
+            font-size: 14px;
             padding: 3px;
             outline: none;
             white-space: nowrap;
@@ -3472,16 +3472,22 @@
                 };
                 this.hazardRows.push(newRow);
                 this.renderRows();
+                this.scrollToBottom();
             }
 
             renderRows() {
                 const tbody = document.getElementById('csmFormBody');
                 tbody.innerHTML = '';
 
-                this.hazardRows.forEach((row, index) => {
+                // Show only the last 6 rows (sliding window effect)
+                const visibleRows = this.hazardRows.slice(-6);
+                
+                visibleRows.forEach((row, originalIndex) => {
+                    // Calculate the original index in the full array
+                    const index = this.hazardRows.length - 6 + visibleRows.indexOf(row);
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 12px; padding: 3px; text-align: center; font-weight: bold;"></td>
+                        <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 14px; padding: 3px; text-align: center; font-weight: bold;"></td>
                         <td><select data-field="source" data-index="${index}">
                             <option value="">Select Source</option>
                             <option value="Aircraft Fuel Tanks" ${row.source === 'Aircraft Fuel Tanks' ? 'selected' : ''}>Aircraft Fuel Tanks</option>
@@ -3753,6 +3759,13 @@
                 });
 
                 this.addInputEventListeners();
+            }
+
+            scrollToBottom() {
+                const wrapper = document.querySelector('.csm-form-table-wrapper');
+                if (wrapper) {
+                    wrapper.scrollTop = wrapper.scrollHeight;
+                }
             }
 
             addInputEventListeners() {
