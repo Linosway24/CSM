@@ -95,7 +95,7 @@
 
         /* CSM Form Styles */
         .csm-form-table-wrapper {
-            max-height: calc(25vh - 120px);
+            max-height: calc(25vh - 100px);
             overflow-y: auto;
             overflow-x: auto;
             border: 1px solid #dee2e6;
@@ -3479,12 +3479,8 @@
                 const tbody = document.getElementById('csmFormBody');
                 tbody.innerHTML = '';
 
-                // Show only the last 6 rows (sliding window effect)
-                const visibleRows = this.hazardRows.slice(-6);
-                
-                visibleRows.forEach((row, originalIndex) => {
-                    // Calculate the original index in the full array
-                    const index = this.hazardRows.length - 6 + visibleRows.indexOf(row);
+                // Show all rows but with scrolling capability
+                this.hazardRows.forEach((row, index) => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 14px; padding: 3px; text-align: center; font-weight: bold;"></td>
