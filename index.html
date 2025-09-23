@@ -3962,36 +3962,38 @@
                                 </div>
                                 ${detail.fieldResults ? `
                                     <div style="padding: 1rem;">
-                                        <h4 style="margin: 0 0 1rem 0; color: #333;">Field Comparison:</h4>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                            <div>
-                                                <h5 style="margin: 0 0 0.5rem 0; color: #dc3545;">Your Answers</h5>
-                                                ${detail.fieldResults.map(field => `
-                                                    <div style="margin: 0.5rem 0; padding: 0.5rem; background: ${
-                                                        field.status === 'correct' ? '#d4edda' : '#f8d7da'
-                                                    }; border-radius: 4px; border-left: 4px solid ${
-                                                        field.status === 'correct' ? '#28a745' : '#dc3545'
-                                                    };">
-                                                        <strong style="color: #333;">${field.field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong><br>
-                                                        <span style="color: ${
-                                                            field.status === 'correct' ? '#155724' : '#721c24'
-                                                        };">
-                                                            ${field.status === 'correct' ? '✓ ' : '✗ '}${field.student || 'Not answered'}
-                                                        </span>
-                                                    </div>
-                                                `).join('')}
-                                            </div>
-                                            <div>
-                                                <h5 style="margin: 0 0 0.5rem 0; color: #28a745;">Correct Answers</h5>
-                                                ${detail.fieldResults.map(field => `
-                                                    <div style="margin: 0.5rem 0; padding: 0.5rem; background: #d4edda; border-radius: 4px; border-left: 4px solid #28a745;">
-                                                        <strong style="color: #333;">${field.field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</strong><br>
-                                                        <span style="color: #155724;">
-                                                            ✓ ${field.reference}
-                                                        </span>
-                                                    </div>
-                                                `).join('')}
-                                            </div>
+                                        <h4 style="margin: 0 0 1rem 0; color: #333;">Field-by-Field Comparison:</h4>
+                                        <div style="overflow-x: auto;">
+                                            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                                                <thead>
+                                                    <tr style="background: #f8f9fa;">
+                                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #dee2e6; font-weight: bold;">Field</th>
+                                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #dee2e6; font-weight: bold; color: #dc3545;">Your Answer</th>
+                                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #dee2e6; font-weight: bold; color: #28a745;">Correct Answer</th>
+                                                        <th style="padding: 0.5rem; text-align: center; border: 1px solid #dee2e6; font-weight: bold;">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${detail.fieldResults.map(field => `
+                                                        <tr style="background: ${field.status === 'correct' ? '#f8fff8' : '#fff8f8'};">
+                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; font-weight: 500;">
+                                                                ${field.field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                                            </td>
+                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; color: ${field.status === 'correct' ? '#155724' : '#721c24'};">
+                                                                ${field.student || 'Not answered'}
+                                                            </td>
+                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; color: #155724;">
+                                                                ${field.reference}
+                                                            </td>
+                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; text-align: center;">
+                                                                <span style="color: ${field.status === 'correct' ? '#28a745' : '#dc3545'}; font-weight: bold; font-size: 16px;">
+                                                                    ${field.status === 'correct' ? '✓' : '✗'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 ` : ''}
