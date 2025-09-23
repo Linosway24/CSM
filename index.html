@@ -822,20 +822,17 @@
                         <table class="csm-form-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 7%;">Hazard ID</th>
-                                    <th style="width: 9%;">Hazard Type</th>
-                                    <th style="width: 7%;">Location</th>
-                                    <th style="width: 8%;">Environmental Medium</th>
-                                    <th style="width: 7%;">Health Threat</th>
-                                    <th style="width: 7%;">Exposure Route</th>
-                                    <th style="width: 8%;">Population Affected</th>
-                                    <th style="width: 8%;">Existing Controls</th>
-                                    <th style="width: 9%;">Frequency/Duration</th>
-                                    <th style="width: 7%;">Severity</th>
-                                    <th style="width: 7%;">Probability</th>
-                                    <th style="width: 9%;">Risk Assessment</th>
-                                    <th style="width: 9%;">Recommended Actions</th>
-                                    <th style="width: 8%;">Notes</th>
+                                    <th style="width: 8%;">Hazard ID</th>
+                                    <th style="width: 12%;">Source</th>
+                                    <th style="width: 12%;">Environmental Medium</th>
+                                    <th style="width: 10%;">Health Threat</th>
+                                    <th style="width: 10%;">Exposure Route</th>
+                                    <th style="width: 12%;">Population Affected</th>
+                                    <th style="width: 12%;">Existing Controls</th>
+                                    <th style="width: 12%;">Frequency/Duration</th>
+                                    <th style="width: 8%;">Severity</th>
+                                    <th style="width: 8%;">Probability</th>
+                                    <th style="width: 8%;">Risk</th>
                                 </tr>
                             </thead>
                             <tbody id="csmFormBody">
@@ -3387,9 +3384,8 @@
             addHazardRow() {
                 const newRow = {
                     id: this.hazardRows.length + 1,
-                    hazardId: '',
-                    hazardType: '',
-                    location: '',
+                    hazardId: this.hazardRows.length + 1, // Sequential numbering
+                    source: '',
                     environmentalMedium: '',
                     healthThreat: '',
                     exposureRoute: '',
@@ -3398,9 +3394,7 @@
                     frequencyDuration: '',
                     severity: '',
                     probability: '',
-                    riskAssessment: '',
-                    recommendedActions: '',
-                    notes: ''
+                    risk: ''
                 };
                 this.hazardRows.push(newRow);
                 this.renderRows();
@@ -3413,38 +3407,19 @@
                 this.hazardRows.forEach((row, index) => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><select data-field="hazardId" data-index="${index}">
-                            <option value="">Select ID</option>
-                            <option value="H1">H1</option>
-                            <option value="H2">H2</option>
-                            <option value="H3">H3</option>
-                            <option value="H4">H4</option>
-                            <option value="H5">H5</option>
-                            <option value="H6">H6</option>
-                            <option value="H7">H7</option>
-                            <option value="H8">H8</option>
-                            <option value="H9">H9</option>
-                            <option value="H10">H10</option>
-                        </select></td>
-                        <td><select data-field="hazardType" data-index="${index}">
-                            <option value="">Select Type</option>
-                            <option value="Chemical">Chemical</option>
-                            <option value="Physical">Physical</option>
-                            <option value="Biological">Biological</option>
-                            <option value="Radiological">Radiological</option>
-                            <option value="Ergonomic">Ergonomic</option>
-                            <option value="Safety">Safety</option>
-                        </select></td>
-                        <td><select data-field="location" data-index="${index}">
-                            <option value="">Select Location</option>
-                            <option value="Building 1">Building 1</option>
-                            <option value="Building 2">Building 2</option>
-                            <option value="Hangar A">Hangar A</option>
-                            <option value="Hangar B">Hangar B</option>
-                            <option value="Fuel Storage">Fuel Storage</option>
-                            <option value="Maintenance">Maintenance</option>
-                            <option value="Runway">Runway</option>
-                            <option value="Parking">Parking</option>
+                        <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 12px; padding: 3px; text-align: center; font-weight: bold;"></td>
+                        <td><select data-field="source" data-index="${index}">
+                            <option value="">Select Source</option>
+                            <option value="Engine Testing Pad">Engine Testing Pad</option>
+                            <option value="Aircraft Fuel Tanks">Aircraft Fuel Tanks</option>
+                            <option value="Legacy Burn Pit">Legacy Burn Pit</option>
+                            <option value="Welding Shop">Welding Shop</option>
+                            <option value="Historic Landfill">Historic Landfill</option>
+                            <option value="Field Training Area">Field Training Area</option>
+                            <option value="Field Water System">Field Water System</option>
+                            <option value="Municipal Water System">Municipal Water System</option>
+                            <option value="Arthropod Vectors">Arthropod Vectors</option>
+                            <option value="Other">Other</option>
                         </select></td>
                         <td><select data-field="environmentalMedium" data-index="${index}">
                             <option value="">Select Medium</option>
@@ -3454,6 +3429,7 @@
                             <option value="Surface Water">Surface Water</option>
                             <option value="Sediment">Sediment</option>
                             <option value="Biota">Biota</option>
+                            <option value="Auditory">Auditory</option>
                         </select></td>
                         <td><select data-field="healthThreat" data-index="${index}">
                             <option value="">Select Threat</option>
@@ -3463,6 +3439,10 @@
                             <option value="Reproductive">Reproductive</option>
                             <option value="Developmental">Developmental</option>
                             <option value="Neurological">Neurological</option>
+                            <option value="Noise-Induced Hearing Loss">Noise-Induced Hearing Loss</option>
+                            <option value="Benzene Exposure">Benzene Exposure</option>
+                            <option value="Dioxins/PM">Dioxins/PM</option>
+                            <option value="Manganese/Cr6+">Manganese/Cr6+</option>
                         </select></td>
                         <td><select data-field="exposureRoute" data-index="${index}">
                             <option value="">Select Route</option>
@@ -3471,6 +3451,7 @@
                             <option value="Dermal">Dermal</option>
                             <option value="Direct Contact">Direct Contact</option>
                             <option value="Indirect Contact">Indirect Contact</option>
+                            <option value="Auditory">Auditory</option>
                         </select></td>
                         <td><select data-field="populationAffected" data-index="${index}">
                             <option value="">Select Population</option>
@@ -3480,6 +3461,10 @@
                             <option value="Elderly">Elderly</option>
                             <option value="Sensitive">Sensitive</option>
                             <option value="All">All</option>
+                            <option value="Flightline Maintainers">Flightline Maintainers</option>
+                            <option value="Firefighters">Firefighters</option>
+                            <option value="Nearby Housing">Nearby Housing</option>
+                            <option value="Fabricators">Fabricators</option>
                         </select></td>
                         <td><select data-field="existingControls" data-index="${index}">
                             <option value="">Select Controls</option>
@@ -3489,6 +3474,10 @@
                             <option value="Administrative">Administrative</option>
                             <option value="Monitoring">Monitoring</option>
                             <option value="Multiple">Multiple</option>
+                            <option value="HPDs, duty limits">HPDs, duty limits</option>
+                            <option value="Secondary containment">Secondary containment</option>
+                            <option value="Fence, ash cap">Fence, ash cap</option>
+                            <option value="LEV, PPE, IH surveys">LEV, PPE, IH surveys</option>
                         </select></td>
                         <td><select data-field="frequencyDuration" data-index="${index}">
                             <option value="">Select Frequency</option>
@@ -3498,6 +3487,10 @@
                             <option value="Monthly">Monthly</option>
                             <option value="Occasional">Occasional</option>
                             <option value="Rare">Rare</option>
+                            <option value="Daily/8hrs">Daily/8hrs</option>
+                            <option value="Rare spills">Rare spills</option>
+                            <option value="Seasonal wind">Seasonal wind</option>
+                            <option value="Constant">Constant</option>
                         </select></td>
                         <td><select data-field="severity" data-index="${index}">
                             <option value="">Select Severity</option>
@@ -3505,6 +3498,8 @@
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
                             <option value="Critical">Critical</option>
+                            <option value="Critical (II)">Critical (II)</option>
+                            <option value="Marginal (III)">Marginal (III)</option>
                         </select></td>
                         <td><select data-field="probability" data-index="${index}">
                             <option value="">Select Probability</option>
@@ -3513,24 +3508,20 @@
                             <option value="Medium">Medium</option>
                             <option value="High">High</option>
                             <option value="Very High">Very High</option>
+                            <option value="Frequent (A)">Frequent (A)</option>
+                            <option value="Occasional (C)">Occasional (C)</option>
+                            <option value="Likely (B)">Likely (B)</option>
                         </select></td>
-                        <td><select data-field="riskAssessment" data-index="${index}">
+                        <td><select data-field="risk" data-index="${index}">
                             <option value="">Select Risk</option>
                             <option value="Acceptable">Acceptable</option>
                             <option value="Low Risk">Low Risk</option>
                             <option value="Medium Risk">Medium Risk</option>
                             <option value="High Risk">High Risk</option>
                             <option value="Unacceptable">Unacceptable</option>
+                            <option value="Extremely High">Extremely High</option>
+                            <option value="Moderate">Moderate</option>
                         </select></td>
-                        <td><select data-field="recommendedActions" data-index="${index}">
-                            <option value="">Select Actions</option>
-                            <option value="No Action">No Action</option>
-                            <option value="Monitor">Monitor</option>
-                            <option value="Implement Controls">Implement Controls</option>
-                            <option value="Immediate Action">Immediate Action</option>
-                            <option value="Emergency Response">Emergency Response</option>
-                        </select></td>
-                        <td><input type="text" data-field="notes" data-index="${index}" placeholder="Notes..." style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 3px;"></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -3561,16 +3552,14 @@
 
             populateFromMapData(hazardData) {
                 // Find an empty row or add a new one
-                let targetRow = this.hazardRows.find(row => !row.hazardId);
+                let targetRow = this.hazardRows.find(row => !row.source);
                 if (!targetRow) {
                     this.addHazardRow();
                     targetRow = this.hazardRows[this.hazardRows.length - 1];
                 }
 
                 // Populate with map data
-                targetRow.hazardId = hazardData.hazard_id || '';
-                targetRow.hazardType = hazardData.hazard_type || '';
-                targetRow.location = hazardData.location || '';
+                targetRow.source = hazardData.hazard_type || hazardData.display_name || '';
                 targetRow.severity = hazardData.severity || '';
                 targetRow.risk = hazardData.risk || '';
 
@@ -3595,17 +3584,15 @@
 
             generateCSV() {
                 const headers = [
-                    'Hazard ID', 'Hazard Type', 'Location', 'Environmental Medium',
-                    'Health Threat', 'Exposure Route', 'Population Affected', 'Existing Controls',
-                    'Frequency/Duration', 'Severity', 'Probability', 'Risk Assessment',
-                    'Recommended Actions', 'Notes'
+                    'Hazard ID', 'Source', 'Environmental Medium', 'Health Threat',
+                    'Exposure Route', 'Population Affected', 'Existing Controls',
+                    'Frequency/Duration', 'Severity', 'Probability', 'Risk'
                 ];
 
                 const rows = this.hazardRows.map(row => [
-                    row.hazardId, row.hazardType, row.location, row.environmentalMedium,
-                    row.healthThreat, row.exposureRoute, row.populationAffected, row.existingControls,
-                    row.frequencyDuration, row.severity, row.probability, row.riskAssessment,
-                    row.recommendedActions, row.notes
+                    row.hazardId, row.source, row.environmentalMedium, row.healthThreat,
+                    row.exposureRoute, row.populationAffected, row.existingControls,
+                    row.frequencyDuration, row.severity, row.probability, row.risk
                 ]);
 
                 const csvContent = [headers, ...rows]
