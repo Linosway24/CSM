@@ -71,11 +71,81 @@
         .sidebar-content {
             flex: 1;
             padding: 1rem;
+            overflow-y: auto;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        /* CSM Form Styles */
+        .csm-form-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 12px;
+        }
+
+        .csm-form-table th {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 11px;
+            color: #495057;
+        }
+
+        .csm-form-table td {
+            border: 1px solid #dee2e6;
+            padding: 4px;
+            vertical-align: top;
+        }
+
+        .csm-form-table select {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 11px;
+            padding: 2px;
+            outline: none;
+        }
+
+        .csm-form-table select:focus {
+            background-color: #e3f2fd;
+        }
+
+        .csm-form-actions {
+            margin-top: 1rem;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
-            font-size: 1.1rem;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .csm-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .csm-btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .csm-btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .csm-btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .csm-btn-secondary:hover {
+            background-color: #545b62;
         }
 
         .control-panel {
@@ -738,15 +808,51 @@
                 </div>
             </div>
 
-            <!-- Sidebar Section -->
-            <div class="sidebar-section">
-                <div class="sidebar-header">
-                    <h2>CSM Form</h2>
+                <!-- Sidebar Section -->
+                <div class="sidebar-section">
+                    <div class="sidebar-header">
+                        <h2>CSM Spreadsheet</h2>
+                    </div>
+                    <div class="sidebar-content">
+                        <table class="csm-form-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 12%;">Hazard ID</th>
+                                    <th style="width: 15%;">Hazard Type</th>
+                                    <th style="width: 12%;">Location</th>
+                                    <th style="width: 12%;">Environmental Medium</th>
+                                    <th style="width: 12%;">Health Threat</th>
+                                    <th style="width: 12%;">Exposure Route</th>
+                                    <th style="width: 12%;">Population Affected</th>
+                                    <th style="width: 13%;">Existing Controls</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csmFormBody">
+                                <!-- Rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                        <table class="csm-form-table" style="margin-top: 1rem;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 15%;">Frequency/Duration</th>
+                                    <th style="width: 12%;">Severity</th>
+                                    <th style="width: 12%;">Probability</th>
+                                    <th style="width: 20%;">Risk Assessment</th>
+                                    <th style="width: 15%;">Recommended Actions</th>
+                                    <th style="width: 26%;">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="csmFormBody2">
+                                <!-- Rows will be dynamically added here -->
+                            </tbody>
+                        </table>
+                        <div class="csm-form-actions">
+                            <button class="csm-btn csm-btn-primary" id="addHazardRow">Add Hazard</button>
+                            <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
+                            <button class="csm-btn csm-btn-primary" id="exportCSM">Export CSM</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="sidebar-content">
-                    <p>CSM form will be added here</p>
-                </div>
-            </div>
         </div>
 
         <!-- Information Panel -->
@@ -2890,6 +2996,11 @@
                         // Show the info box
                         clickInfoBox.classList.remove('hidden');
                     }
+                    
+                    // Populate CSM form with hazard data
+                    if (window.csmFormManager) {
+                        window.csmFormManager.populateFromMapData(props);
+                    }
                 }
 
 
@@ -3251,10 +3362,281 @@
                 }
             }
 
+        // CSM Form Manager
+        class CSMFormManager {
+            constructor() {
+                this.hazardRows = [];
+                this.initEventListeners();
+                this.addInitialRow();
+            }
+
+            initEventListeners() {
+                document.getElementById('addHazardRow').addEventListener('click', () => {
+                    this.addHazardRow();
+                });
+
+                document.getElementById('clearForm').addEventListener('click', () => {
+                    this.clearForm();
+                });
+
+                document.getElementById('exportCSM').addEventListener('click', () => {
+                    this.exportCSM();
+                });
+            }
+
+            addInitialRow() {
+                this.addHazardRow();
+            }
+
+            addHazardRow() {
+                const newRow = {
+                    id: this.hazardRows.length + 1,
+                    hazardId: '',
+                    hazardType: '',
+                    location: '',
+                    environmentalMedium: '',
+                    healthThreat: '',
+                    exposureRoute: '',
+                    populationAffected: '',
+                    existingControls: '',
+                    frequencyDuration: '',
+                    severity: '',
+                    probability: '',
+                    riskAssessment: '',
+                    recommendedActions: '',
+                    notes: ''
+                };
+                this.hazardRows.push(newRow);
+                this.renderRows();
+            }
+
+            renderRows() {
+                const tbody1 = document.getElementById('csmFormBody');
+                const tbody2 = document.getElementById('csmFormBody2');
+                
+                tbody1.innerHTML = '';
+                tbody2.innerHTML = '';
+
+                this.hazardRows.forEach((row, index) => {
+                    // First table row
+                    const tr1 = document.createElement('tr');
+                    tr1.innerHTML = `
+                        <td><select data-field="hazardId" data-index="${index}">
+                            <option value="">Select ID</option>
+                            <option value="H1">H1</option>
+                            <option value="H2">H2</option>
+                            <option value="H3">H3</option>
+                            <option value="H4">H4</option>
+                            <option value="H5">H5</option>
+                            <option value="H6">H6</option>
+                            <option value="H7">H7</option>
+                            <option value="H8">H8</option>
+                            <option value="H9">H9</option>
+                            <option value="H10">H10</option>
+                        </select></td>
+                        <td><select data-field="hazardType" data-index="${index}">
+                            <option value="">Select Type</option>
+                            <option value="Chemical">Chemical</option>
+                            <option value="Physical">Physical</option>
+                            <option value="Biological">Biological</option>
+                            <option value="Radiological">Radiological</option>
+                            <option value="Ergonomic">Ergonomic</option>
+                            <option value="Safety">Safety</option>
+                        </select></td>
+                        <td><select data-field="location" data-index="${index}">
+                            <option value="">Select Location</option>
+                            <option value="Building 1">Building 1</option>
+                            <option value="Building 2">Building 2</option>
+                            <option value="Hangar A">Hangar A</option>
+                            <option value="Hangar B">Hangar B</option>
+                            <option value="Fuel Storage">Fuel Storage</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Runway">Runway</option>
+                            <option value="Parking">Parking</option>
+                        </select></td>
+                        <td><select data-field="environmentalMedium" data-index="${index}">
+                            <option value="">Select Medium</option>
+                            <option value="Air">Air</option>
+                            <option value="Soil">Soil</option>
+                            <option value="Groundwater">Groundwater</option>
+                            <option value="Surface Water">Surface Water</option>
+                            <option value="Sediment">Sediment</option>
+                            <option value="Biota">Biota</option>
+                        </select></td>
+                        <td><select data-field="healthThreat" data-index="${index}">
+                            <option value="">Select Threat</option>
+                            <option value="Acute">Acute</option>
+                            <option value="Chronic">Chronic</option>
+                            <option value="Carcinogenic">Carcinogenic</option>
+                            <option value="Reproductive">Reproductive</option>
+                            <option value="Developmental">Developmental</option>
+                            <option value="Neurological">Neurological</option>
+                        </select></td>
+                        <td><select data-field="exposureRoute" data-index="${index}">
+                            <option value="">Select Route</option>
+                            <option value="Inhalation">Inhalation</option>
+                            <option value="Ingestion">Ingestion</option>
+                            <option value="Dermal">Dermal</option>
+                            <option value="Direct Contact">Direct Contact</option>
+                            <option value="Indirect Contact">Indirect Contact</option>
+                        </select></td>
+                        <td><select data-field="populationAffected" data-index="${index}">
+                            <option value="">Select Population</option>
+                            <option value="Workers">Workers</option>
+                            <option value="Public">Public</option>
+                            <option value="Children">Children</option>
+                            <option value="Elderly">Elderly</option>
+                            <option value="Sensitive">Sensitive</option>
+                            <option value="All">All</option>
+                        </select></td>
+                        <td><select data-field="existingControls" data-index="${index}">
+                            <option value="">Select Controls</option>
+                            <option value="None">None</option>
+                            <option value="PPE">PPE</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Administrative">Administrative</option>
+                            <option value="Monitoring">Monitoring</option>
+                            <option value="Multiple">Multiple</option>
+                        </select></td>
+                    `;
+                    tbody1.appendChild(tr1);
+
+                    // Second table row
+                    const tr2 = document.createElement('tr');
+                    tr2.innerHTML = `
+                        <td><select data-field="frequencyDuration" data-index="${index}">
+                            <option value="">Select Frequency</option>
+                            <option value="Continuous">Continuous</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Occasional">Occasional</option>
+                            <option value="Rare">Rare</option>
+                        </select></td>
+                        <td><select data-field="severity" data-index="${index}">
+                            <option value="">Select Severity</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Critical">Critical</option>
+                        </select></td>
+                        <td><select data-field="probability" data-index="${index}">
+                            <option value="">Select Probability</option>
+                            <option value="Very Low">Very Low</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Very High">Very High</option>
+                        </select></td>
+                        <td><select data-field="riskAssessment" data-index="${index}">
+                            <option value="">Select Risk</option>
+                            <option value="Acceptable">Acceptable</option>
+                            <option value="Low Risk">Low Risk</option>
+                            <option value="Medium Risk">Medium Risk</option>
+                            <option value="High Risk">High Risk</option>
+                            <option value="Unacceptable">Unacceptable</option>
+                        </select></td>
+                        <td><select data-field="recommendedActions" data-index="${index}">
+                            <option value="">Select Actions</option>
+                            <option value="No Action">No Action</option>
+                            <option value="Monitor">Monitor</option>
+                            <option value="Implement Controls">Implement Controls</option>
+                            <option value="Immediate Action">Immediate Action</option>
+                            <option value="Emergency Response">Emergency Response</option>
+                        </select></td>
+                        <td><input type="text" data-field="notes" data-index="${index}" placeholder="Notes..." style="width: 100%; border: none; background: transparent; font-size: 11px; padding: 2px;"></td>
+                    `;
+                    tbody2.appendChild(tr2);
+                });
+
+                this.addInputEventListeners();
+            }
+
+            addInputEventListeners() {
+                const selects = document.querySelectorAll('.csm-form-table select');
+                const inputs = document.querySelectorAll('.csm-form-table input');
+
+                selects.forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        const field = e.target.dataset.field;
+                        const index = parseInt(e.target.dataset.index);
+                        this.hazardRows[index][field] = e.target.value;
+                    });
+                });
+
+                inputs.forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const field = e.target.dataset.field;
+                        const index = parseInt(e.target.dataset.index);
+                        this.hazardRows[index][field] = e.target.value;
+                    });
+                });
+            }
+
+            populateFromMapData(hazardData) {
+                // Find an empty row or add a new one
+                let targetRow = this.hazardRows.find(row => !row.hazardId);
+                if (!targetRow) {
+                    this.addHazardRow();
+                    targetRow = this.hazardRows[this.hazardRows.length - 1];
+                }
+
+                // Populate with map data
+                targetRow.hazardId = hazardData.hazard_id || '';
+                targetRow.hazardType = hazardData.hazard_type || '';
+                targetRow.location = hazardData.location || '';
+                targetRow.severity = hazardData.severity || '';
+                targetRow.risk = hazardData.risk || '';
+
+                this.renderRows();
+            }
+
+            clearForm() {
+                this.hazardRows = [];
+                this.addInitialRow();
+            }
+
+            exportCSM() {
+                const csv = this.generateCSV();
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'csm_data.csv';
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }
+
+            generateCSV() {
+                const headers = [
+                    'Hazard ID', 'Hazard Type', 'Location', 'Environmental Medium',
+                    'Health Threat', 'Exposure Route', 'Population Affected', 'Existing Controls',
+                    'Frequency/Duration', 'Severity', 'Probability', 'Risk Assessment',
+                    'Recommended Actions', 'Notes'
+                ];
+
+                const rows = this.hazardRows.map(row => [
+                    row.hazardId, row.hazardType, row.location, row.environmentalMedium,
+                    row.healthThreat, row.exposureRoute, row.populationAffected, row.existingControls,
+                    row.frequencyDuration, row.severity, row.probability, row.riskAssessment,
+                    row.recommendedActions, row.notes
+                ]);
+
+                const csvContent = [headers, ...rows]
+                    .map(row => row.map(field => `"${field}"`).join(','))
+                    .join('\n');
+
+                return csvContent;
+            }
+        }
+
         // Initialize the application when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             const app = new OEHSAHazardMap();
             app.init();
+            
+            // Initialize CSM Form Manager
+            window.csmFormManager = new CSMFormManager();
             
             // Add keyboard event listeners for arrow key navigation
             document.addEventListener('keydown', (event) => {
