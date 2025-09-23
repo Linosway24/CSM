@@ -102,6 +102,11 @@
             border-radius: 4px;
         }
 
+        /* Allow more height when there are only 2 rows */
+        .csm-form-table-wrapper.show-all {
+            max-height: calc(25vh - 80px);
+        }
+
         .csm-form-table {
             width: 100%;
             min-width: 1200px;
@@ -3477,16 +3482,19 @@
 
             renderRows() {
                 const tbody = document.getElementById('csmFormBody');
+                const wrapper = document.querySelector('.csm-form-table-wrapper');
                 tbody.innerHTML = '';
 
-                // Show all rows if 2 or fewer, otherwise show sliding window starting from 3rd
+                // Show all rows if 2 or fewer, otherwise show sliding window starting after 2nd
                 let rowsToShow;
                 if (this.hazardRows.length <= 2) {
                     // Show all rows for first 2 hazards
                     rowsToShow = this.hazardRows;
+                    wrapper.classList.add('show-all');
                 } else {
-                    // Show sliding window starting from 3rd hazard (show last 5)
+                    // Show sliding window starting after 2nd hazard (show last 5)
                     rowsToShow = this.hazardRows.slice(-5);
+                    wrapper.classList.remove('show-all');
                 }
                 
                 rowsToShow.forEach((row, displayIndex) => {
