@@ -3492,19 +3492,12 @@
                     rowsToShow = this.hazardRows;
                     wrapper.classList.add('show-all');
                 } else {
-                    // Show sliding window starting after 2nd hazard (show last 5)
-                    rowsToShow = this.hazardRows.slice(-5);
+                    // Show all rows but with scrolling capability after 2nd hazard
+                    rowsToShow = this.hazardRows;
                     wrapper.classList.remove('show-all');
                 }
                 
-                rowsToShow.forEach((row, displayIndex) => {
-                    // Calculate the original index in the full array
-                    let index;
-                    if (this.hazardRows.length <= 2) {
-                        index = displayIndex;
-                    } else {
-                        index = this.hazardRows.length - 5 + displayIndex;
-                    }
+                rowsToShow.forEach((row, index) => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 14px; padding: 3px; text-align: center; font-weight: bold;"></td>
