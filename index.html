@@ -3710,10 +3710,16 @@
                         targetRow = this.hazardRows[0]; // Use first row if all are filled
                     }
 
-                    // Populate with map data
-                    targetRow.source = hazardData.hazard_type || hazardData.display_name || '';
-                    targetRow.severity = hazardData.severity || '';
-                    targetRow.risk = hazardData.risk || '';
+                    // Populate with map data (only if fields are empty)
+                    if (!targetRow.source) {
+                        targetRow.source = hazardData.hazard_type || hazardData.display_name || '';
+                    }
+                    if (!targetRow.severity) {
+                        targetRow.severity = hazardData.severity || '';
+                    }
+                    if (!targetRow.risk) {
+                        targetRow.risk = hazardData.risk || '';
+                    }
 
                     // Update the specific form fields without re-rendering the entire table
                     this.updateFormFields(targetRow);
@@ -3730,13 +3736,14 @@
                 const severitySelect = document.querySelector(`select[data-field="severity"][data-index="${rowIndex}"]`);
                 const riskSelect = document.querySelector(`select[data-field="risk"][data-index="${rowIndex}"]`);
 
-                if (sourceSelect && targetRow.source) {
+                // Only update if the field value is different from what's currently selected
+                if (sourceSelect && targetRow.source && sourceSelect.value !== targetRow.source) {
                     sourceSelect.value = targetRow.source;
                 }
-                if (severitySelect && targetRow.severity) {
+                if (severitySelect && targetRow.severity && severitySelect.value !== targetRow.severity) {
                     severitySelect.value = targetRow.severity;
                 }
-                if (riskSelect && targetRow.risk) {
+                if (riskSelect && targetRow.risk && riskSelect.value !== targetRow.risk) {
                     riskSelect.value = targetRow.risk;
                 }
             }
