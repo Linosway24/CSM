@@ -3715,7 +3715,29 @@
                     targetRow.severity = hazardData.severity || '';
                     targetRow.risk = hazardData.risk || '';
 
-                    this.renderRows();
+                    // Update the specific form fields without re-rendering the entire table
+                    this.updateFormFields(targetRow);
+                }
+            }
+
+            updateFormFields(targetRow) {
+                // Find the row index
+                const rowIndex = this.hazardRows.indexOf(targetRow);
+                if (rowIndex === -1) return;
+
+                // Update only the specific fields that were populated from map data
+                const sourceSelect = document.querySelector(`select[data-field="source"][data-index="${rowIndex}"]`);
+                const severitySelect = document.querySelector(`select[data-field="severity"][data-index="${rowIndex}"]`);
+                const riskSelect = document.querySelector(`select[data-field="risk"][data-index="${rowIndex}"]`);
+
+                if (sourceSelect && targetRow.source) {
+                    sourceSelect.value = targetRow.source;
+                }
+                if (severitySelect && targetRow.severity) {
+                    severitySelect.value = targetRow.severity;
+                }
+                if (riskSelect && targetRow.risk) {
+                    riskSelect.value = targetRow.risk;
                 }
             }
 
