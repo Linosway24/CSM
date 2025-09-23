@@ -3658,24 +3658,22 @@
                         </select></td>
                         <td><select data-field="frequencyDuration" data-index="${index}">
                             <option value="">Select Frequency</option>
-                            <option value="24/7" ${row.frequencyDuration === '24/7' ? 'selected' : ''}>24/7</option>
+                            <option value="Annual" ${row.frequencyDuration === 'Annual' ? 'selected' : ''}>Annual</option>
                             <option value="Constant" ${row.frequencyDuration === 'Constant' ? 'selected' : ''}>Constant</option>
                             <option value="Continuous" ${row.frequencyDuration === 'Continuous' ? 'selected' : ''}>Continuous</option>
                             <option value="Daily" ${row.frequencyDuration === 'Daily' ? 'selected' : ''}>Daily</option>
-                            <option value="Daily/8hrs" ${row.frequencyDuration === 'Daily/8hrs' ? 'selected' : ''}>Daily/8hrs</option>
-                            <option value="Event-driven" ${row.frequencyDuration === 'Event-driven' ? 'selected' : ''}>Event-driven</option>
-                            <option value="Historical" ${row.frequencyDuration === 'Historical' ? 'selected' : ''}>Historical</option>
-                            <option value="Intermittent" ${row.frequencyDuration === 'Intermittent' ? 'selected' : ''}>Intermittent</option>
-                            <option value="Maintenance cycles" ${row.frequencyDuration === 'Maintenance cycles' ? 'selected' : ''}>Maintenance cycles</option>
-                            <option value="Monthly" ${row.frequencyDuration === 'Monthly' ? 'selected' : ''}>Monthly</option>
-                            <option value="Occasional" ${row.frequencyDuration === 'Occasional' ? 'selected' : ''}>Occasional</option>
-                            <option value="Periodic" ${row.frequencyDuration === 'Periodic' ? 'selected' : ''}>Periodic</option>
-                            <option value="Rare" ${row.frequencyDuration === 'Rare' ? 'selected' : ''}>Rare</option>
+                            <option value="Daily/8 hrs" ${row.frequencyDuration === 'Daily/8 hrs' ? 'selected' : ''}>Daily/8 hrs</option>
+                            <option value="Dry season" ${row.frequencyDuration === 'Dry season' ? 'selected' : ''}>Dry season</option>
+                            <option value="Legacy source" ${row.frequencyDuration === 'Legacy source' ? 'selected' : ''}>Legacy source</option>
+                            <option value="Monthly access" ${row.frequencyDuration === 'Monthly access' ? 'selected' : ''}>Monthly access</option>
+                            <option value="Quarterly" ${row.frequencyDuration === 'Quarterly' ? 'selected' : ''}>Quarterly</option>
                             <option value="Rare spills" ${row.frequencyDuration === 'Rare spills' ? 'selected' : ''}>Rare spills</option>
-                            <option value="Seasonal" ${row.frequencyDuration === 'Seasonal' ? 'selected' : ''}>Seasonal</option>
                             <option value="Seasonal wind" ${row.frequencyDuration === 'Seasonal wind' ? 'selected' : ''}>Seasonal wind</option>
-                            <option value="Shift-based" ${row.frequencyDuration === 'Shift-based' ? 'selected' : ''}>Shift-based</option>
+                            <option value="Summer" ${row.frequencyDuration === 'Summer' ? 'selected' : ''}>Summer</option>
+                            <option value="Variable" ${row.frequencyDuration === 'Variable' ? 'selected' : ''}>Variable</option>
                             <option value="Weekly" ${row.frequencyDuration === 'Weekly' ? 'selected' : ''}>Weekly</option>
+                            <option value="Weekly tasks" ${row.frequencyDuration === 'Weekly tasks' ? 'selected' : ''}>Weekly tasks</option>
+                            <option value="Winter season" ${row.frequencyDuration === 'Winter season' ? 'selected' : ''}>Winter season</option>
                         </select></td>
                         <td><select data-field="severity" data-index="${index}">
                             <option value="">Select Severity</option>
