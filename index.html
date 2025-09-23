@@ -3480,84 +3480,84 @@
                         </select></td>
                         <td><select data-field="healthThreat" data-index="${index}">
                             <option value="">Select Threat</option>
-                            <option value="Acute">Acute</option>
-                            <option value="Chronic">Chronic</option>
-                            <option value="Carcinogenic">Carcinogenic</option>
-                            <option value="Reproductive">Reproductive</option>
-                            <option value="Developmental">Developmental</option>
-                            <option value="Neurological">Neurological</option>
-                            <option value="Noise-Induced Hearing Loss">Noise-Induced Hearing Loss</option>
-                            <option value="Benzene Exposure">Benzene Exposure</option>
-                            <option value="Dioxins/PM">Dioxins/PM</option>
-                            <option value="Manganese/Cr6+">Manganese/Cr6+</option>
+                            <option value="Acute" ${row.healthThreat === 'Acute' ? 'selected' : ''}>Acute</option>
+                            <option value="Chronic" ${row.healthThreat === 'Chronic' ? 'selected' : ''}>Chronic</option>
+                            <option value="Carcinogenic" ${row.healthThreat === 'Carcinogenic' ? 'selected' : ''}>Carcinogenic</option>
+                            <option value="Reproductive" ${row.healthThreat === 'Reproductive' ? 'selected' : ''}>Reproductive</option>
+                            <option value="Developmental" ${row.healthThreat === 'Developmental' ? 'selected' : ''}>Developmental</option>
+                            <option value="Neurological" ${row.healthThreat === 'Neurological' ? 'selected' : ''}>Neurological</option>
+                            <option value="Noise-Induced Hearing Loss" ${row.healthThreat === 'Noise-Induced Hearing Loss' ? 'selected' : ''}>Noise-Induced Hearing Loss</option>
+                            <option value="Benzene Exposure" ${row.healthThreat === 'Benzene Exposure' ? 'selected' : ''}>Benzene Exposure</option>
+                            <option value="Dioxins/PM" ${row.healthThreat === 'Dioxins/PM' ? 'selected' : ''}>Dioxins/PM</option>
+                            <option value="Manganese/Cr6+" ${row.healthThreat === 'Manganese/Cr6+' ? 'selected' : ''}>Manganese/Cr6+</option>
                         </select></td>
                         <td><select data-field="exposureRoute" data-index="${index}">
                             <option value="">Select Route</option>
-                            <option value="Inhalation">Inhalation</option>
-                            <option value="Ingestion">Ingestion</option>
-                            <option value="Dermal">Dermal</option>
-                            <option value="Direct Contact">Direct Contact</option>
-                            <option value="Indirect Contact">Indirect Contact</option>
-                            <option value="Auditory">Auditory</option>
+                            <option value="Inhalation" ${row.exposureRoute === 'Inhalation' ? 'selected' : ''}>Inhalation</option>
+                            <option value="Ingestion" ${row.exposureRoute === 'Ingestion' ? 'selected' : ''}>Ingestion</option>
+                            <option value="Dermal" ${row.exposureRoute === 'Dermal' ? 'selected' : ''}>Dermal</option>
+                            <option value="Direct Contact" ${row.exposureRoute === 'Direct Contact' ? 'selected' : ''}>Direct Contact</option>
+                            <option value="Indirect Contact" ${row.exposureRoute === 'Indirect Contact' ? 'selected' : ''}>Indirect Contact</option>
+                            <option value="Auditory" ${row.exposureRoute === 'Auditory' ? 'selected' : ''}>Auditory</option>
                         </select></td>
                         <td><select data-field="populationAffected" data-index="${index}">
                             <option value="">Select Population</option>
-                            <option value="Workers">Workers</option>
-                            <option value="Public">Public</option>
-                            <option value="Children">Children</option>
-                            <option value="Elderly">Elderly</option>
-                            <option value="Sensitive">Sensitive</option>
-                            <option value="All">All</option>
-                            <option value="Flightline Maintainers">Flightline Maintainers</option>
-                            <option value="Firefighters">Firefighters</option>
-                            <option value="Nearby Housing">Nearby Housing</option>
-                            <option value="Fabricators">Fabricators</option>
+                            <option value="Workers" ${row.populationAffected === 'Workers' ? 'selected' : ''}>Workers</option>
+                            <option value="Public" ${row.populationAffected === 'Public' ? 'selected' : ''}>Public</option>
+                            <option value="Children" ${row.populationAffected === 'Children' ? 'selected' : ''}>Children</option>
+                            <option value="Elderly" ${row.populationAffected === 'Elderly' ? 'selected' : ''}>Elderly</option>
+                            <option value="Sensitive" ${row.populationAffected === 'Sensitive' ? 'selected' : ''}>Sensitive</option>
+                            <option value="All" ${row.populationAffected === 'All' ? 'selected' : ''}>All</option>
+                            <option value="Flightline Maintainers" ${row.populationAffected === 'Flightline Maintainers' ? 'selected' : ''}>Flightline Maintainers</option>
+                            <option value="Firefighters" ${row.populationAffected === 'Firefighters' ? 'selected' : ''}>Firefighters</option>
+                            <option value="Nearby Housing" ${row.populationAffected === 'Nearby Housing' ? 'selected' : ''}>Nearby Housing</option>
+                            <option value="Fabricators" ${row.populationAffected === 'Fabricators' ? 'selected' : ''}>Fabricators</option>
                         </select></td>
                         <td><select data-field="existingControls" data-index="${index}">
                             <option value="">Select Controls</option>
-                            <option value="None">None</option>
-                            <option value="PPE">PPE</option>
-                            <option value="Engineering">Engineering</option>
-                            <option value="Administrative">Administrative</option>
-                            <option value="Monitoring">Monitoring</option>
-                            <option value="Multiple">Multiple</option>
-                            <option value="HPDs, duty limits">HPDs, duty limits</option>
-                            <option value="Secondary containment">Secondary containment</option>
-                            <option value="Fence, ash cap">Fence, ash cap</option>
-                            <option value="LEV, PPE, IH surveys">LEV, PPE, IH surveys</option>
+                            <option value="None" ${row.existingControls === 'None' ? 'selected' : ''}>None</option>
+                            <option value="PPE" ${row.existingControls === 'PPE' ? 'selected' : ''}>PPE</option>
+                            <option value="Engineering" ${row.existingControls === 'Engineering' ? 'selected' : ''}>Engineering</option>
+                            <option value="Administrative" ${row.existingControls === 'Administrative' ? 'selected' : ''}>Administrative</option>
+                            <option value="Monitoring" ${row.existingControls === 'Monitoring' ? 'selected' : ''}>Monitoring</option>
+                            <option value="Multiple" ${row.existingControls === 'Multiple' ? 'selected' : ''}>Multiple</option>
+                            <option value="HPDs, duty limits" ${row.existingControls === 'HPDs, duty limits' ? 'selected' : ''}>HPDs, duty limits</option>
+                            <option value="Secondary containment" ${row.existingControls === 'Secondary containment' ? 'selected' : ''}>Secondary containment</option>
+                            <option value="Fence, ash cap" ${row.existingControls === 'Fence, ash cap' ? 'selected' : ''}>Fence, ash cap</option>
+                            <option value="LEV, PPE, IH surveys" ${row.existingControls === 'LEV, PPE, IH surveys' ? 'selected' : ''}>LEV, PPE, IH surveys</option>
                         </select></td>
                         <td><select data-field="frequencyDuration" data-index="${index}">
                             <option value="">Select Frequency</option>
-                            <option value="Continuous">Continuous</option>
-                            <option value="Daily">Daily</option>
-                            <option value="Weekly">Weekly</option>
-                            <option value="Monthly">Monthly</option>
-                            <option value="Occasional">Occasional</option>
-                            <option value="Rare">Rare</option>
-                            <option value="Daily/8hrs">Daily/8hrs</option>
-                            <option value="Rare spills">Rare spills</option>
-                            <option value="Seasonal wind">Seasonal wind</option>
-                            <option value="Constant">Constant</option>
+                            <option value="Continuous" ${row.frequencyDuration === 'Continuous' ? 'selected' : ''}>Continuous</option>
+                            <option value="Daily" ${row.frequencyDuration === 'Daily' ? 'selected' : ''}>Daily</option>
+                            <option value="Weekly" ${row.frequencyDuration === 'Weekly' ? 'selected' : ''}>Weekly</option>
+                            <option value="Monthly" ${row.frequencyDuration === 'Monthly' ? 'selected' : ''}>Monthly</option>
+                            <option value="Occasional" ${row.frequencyDuration === 'Occasional' ? 'selected' : ''}>Occasional</option>
+                            <option value="Rare" ${row.frequencyDuration === 'Rare' ? 'selected' : ''}>Rare</option>
+                            <option value="Daily/8hrs" ${row.frequencyDuration === 'Daily/8hrs' ? 'selected' : ''}>Daily/8hrs</option>
+                            <option value="Rare spills" ${row.frequencyDuration === 'Rare spills' ? 'selected' : ''}>Rare spills</option>
+                            <option value="Seasonal wind" ${row.frequencyDuration === 'Seasonal wind' ? 'selected' : ''}>Seasonal wind</option>
+                            <option value="Constant" ${row.frequencyDuration === 'Constant' ? 'selected' : ''}>Constant</option>
                         </select></td>
                         <td><select data-field="severity" data-index="${index}">
                             <option value="">Select Severity</option>
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                            <option value="Critical">Critical</option>
-                            <option value="Critical (II)">Critical (II)</option>
-                            <option value="Marginal (III)">Marginal (III)</option>
+                            <option value="Low" ${row.severity === 'Low' ? 'selected' : ''}>Low</option>
+                            <option value="Medium" ${row.severity === 'Medium' ? 'selected' : ''}>Medium</option>
+                            <option value="High" ${row.severity === 'High' ? 'selected' : ''}>High</option>
+                            <option value="Critical" ${row.severity === 'Critical' ? 'selected' : ''}>Critical</option>
+                            <option value="Critical (II)" ${row.severity === 'Critical (II)' ? 'selected' : ''}>Critical (II)</option>
+                            <option value="Marginal (III)" ${row.severity === 'Marginal (III)' ? 'selected' : ''}>Marginal (III)</option>
                         </select></td>
                         <td><select data-field="probability" data-index="${index}">
                             <option value="">Select Probability</option>
-                            <option value="Very Low">Very Low</option>
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                            <option value="Very High">Very High</option>
-                            <option value="Frequent (A)">Frequent (A)</option>
-                            <option value="Occasional (C)">Occasional (C)</option>
-                            <option value="Likely (B)">Likely (B)</option>
+                            <option value="Very Low" ${row.probability === 'Very Low' ? 'selected' : ''}>Very Low</option>
+                            <option value="Low" ${row.probability === 'Low' ? 'selected' : ''}>Low</option>
+                            <option value="Medium" ${row.probability === 'Medium' ? 'selected' : ''}>Medium</option>
+                            <option value="High" ${row.probability === 'High' ? 'selected' : ''}>High</option>
+                            <option value="Very High" ${row.probability === 'Very High' ? 'selected' : ''}>Very High</option>
+                            <option value="Frequent (A)" ${row.probability === 'Frequent (A)' ? 'selected' : ''}>Frequent (A)</option>
+                            <option value="Occasional (C)" ${row.probability === 'Occasional (C)' ? 'selected' : ''}>Occasional (C)</option>
+                            <option value="Likely (B)" ${row.probability === 'Likely (B)' ? 'selected' : ''}>Likely (B)</option>
                         </select></td>
                         <td><select data-field="risk" data-index="${index}">
                             <option value="">Select Risk</option>
