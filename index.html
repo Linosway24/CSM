@@ -2781,13 +2781,36 @@
                     clearInterval(this.proximityCheckInterval);
                 }
                 
+                // Debounce proximity check to prevent infinite loops
+                this.lastProximityCheck = 0;
+                this.proximityCheckTimeout = null;
+                const PROXIMITY_CHECK_DELAY = 1000; // 1 second delay between checks
+                
                 this.proximityCheckInterval = setInterval(() => {
-                    this.checkProximityToHazard();
-                }, 100); // Check every 100ms
+                    const now = Date.now();
+                    if (now - this.lastProximityCheck > PROXIMITY_CHECK_DELAY) {
+                        if (this.proximityCheckTimeout) {
+                            clearTimeout(this.proximityCheckTimeout);
+                        }
+                        this.proximityCheckTimeout = setTimeout(() => {
+                            this.checkProximityToHazard();
+                            this.lastProximityCheck = Date.now();
+                        }, PROXIMITY_CHECK_DELAY);
+                    }
+                }, 2000); // Check every 2 seconds instead of 100ms
                 
                 // Also listen for camera movement to ensure proximity check continues
                 this.viewer.camera.moveEnd.addEventListener(() => {
-                    this.checkProximityToHazard();
+                    const now = Date.now();
+                    if (now - this.lastProximityCheck > PROXIMITY_CHECK_DELAY) {
+                        if (this.proximityCheckTimeout) {
+                            clearTimeout(this.proximityCheckTimeout);
+                        }
+                        this.proximityCheckTimeout = setTimeout(() => {
+                            this.checkProximityToHazard();
+                            this.lastProximityCheck = Date.now();
+                        }, PROXIMITY_CHECK_DELAY);
+                    }
                 });
             }
 
@@ -2796,6 +2819,10 @@
                 if (this.proximityCheckInterval) {
                     clearInterval(this.proximityCheckInterval);
                     this.proximityCheckInterval = null;
+                }
+                if (this.proximityCheckTimeout) {
+                    clearTimeout(this.proximityCheckTimeout);
+                    this.proximityCheckTimeout = null;
                 }
                 this.currentHazardEntity = null;
             }
