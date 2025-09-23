@@ -3559,19 +3559,21 @@
             }
 
             populateFromMapData(hazardData) {
-                // Find an empty row or add a new one
-                let targetRow = this.hazardRows.find(row => !row.source);
-                if (!targetRow) {
-                    this.addHazardRow();
-                    targetRow = this.hazardRows[this.hazardRows.length - 1];
+                // Only populate if there are existing rows, don't auto-add new rows
+                if (this.hazardRows.length > 0) {
+                    // Find the first empty row or use the first row
+                    let targetRow = this.hazardRows.find(row => !row.source);
+                    if (!targetRow) {
+                        targetRow = this.hazardRows[0]; // Use first row if all are filled
+                    }
+
+                    // Populate with map data
+                    targetRow.source = hazardData.hazard_type || hazardData.display_name || '';
+                    targetRow.severity = hazardData.severity || '';
+                    targetRow.risk = hazardData.risk || '';
+
+                    this.renderRows();
                 }
-
-                // Populate with map data
-                targetRow.source = hazardData.hazard_type || hazardData.display_name || '';
-                targetRow.severity = hazardData.severity || '';
-                targetRow.risk = hazardData.risk || '';
-
-                this.renderRows();
             }
 
             clearForm() {
