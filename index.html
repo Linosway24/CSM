@@ -3479,8 +3479,24 @@
                 const tbody = document.getElementById('csmFormBody');
                 tbody.innerHTML = '';
 
-                // Show all rows but with scrolling capability
-                this.hazardRows.forEach((row, index) => {
+                // Show all rows if 2 or fewer, otherwise show sliding window starting from 3rd
+                let rowsToShow;
+                if (this.hazardRows.length <= 2) {
+                    // Show all rows for first 2 hazards
+                    rowsToShow = this.hazardRows;
+                } else {
+                    // Show sliding window starting from 3rd hazard (show last 5)
+                    rowsToShow = this.hazardRows.slice(-5);
+                }
+                
+                rowsToShow.forEach((row, displayIndex) => {
+                    // Calculate the original index in the full array
+                    let index;
+                    if (this.hazardRows.length <= 2) {
+                        index = displayIndex;
+                    } else {
+                        index = this.hazardRows.length - 5 + displayIndex;
+                    }
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 14px; padding: 3px; text-align: center; font-weight: bold;"></td>
