@@ -3558,11 +3558,15 @@
                     select.removeEventListener('change', this.handleSelectChange);
                     select.removeEventListener('mousedown', this.handleSelectMouseDown);
                     select.removeEventListener('click', this.handleSelectClick);
+                    select.removeEventListener('blur', this.handleSelectBlur);
+                    select.removeEventListener('mouseleave', this.handleSelectMouseLeave);
                     
                     // Add new listeners
                     select.addEventListener('change', this.handleSelectChange.bind(this));
                     select.addEventListener('mousedown', this.handleSelectMouseDown.bind(this));
                     select.addEventListener('click', this.handleSelectClick.bind(this));
+                    select.addEventListener('blur', this.handleSelectBlur.bind(this));
+                    select.addEventListener('mouseleave', this.handleSelectMouseLeave.bind(this));
                 });
 
                 inputs.forEach(input => {
@@ -3570,28 +3574,88 @@
                     input.removeEventListener('input', this.handleInputChange);
                     input.removeEventListener('mousedown', this.handleInputMouseDown);
                     input.removeEventListener('click', this.handleInputClick);
+                    input.removeEventListener('blur', this.handleInputBlur);
+                    input.removeEventListener('mouseleave', this.handleInputMouseLeave);
                     
                     // Add new listeners
                     input.addEventListener('input', this.handleInputChange.bind(this));
                     input.addEventListener('mousedown', this.handleInputMouseDown.bind(this));
                     input.addEventListener('click', this.handleInputClick.bind(this));
+                    input.addEventListener('blur', this.handleInputBlur.bind(this));
+                    input.addEventListener('mouseleave', this.handleInputMouseLeave.bind(this));
                 });
             }
 
             handleSelectMouseDown(e) {
                 e.stopPropagation(); // Prevent map from capturing the event
+                this.disableMapControls();
             }
 
             handleSelectClick(e) {
                 e.stopPropagation(); // Prevent map from capturing the event
+                this.disableMapControls();
             }
 
             handleInputMouseDown(e) {
                 e.stopPropagation(); // Prevent map from capturing the event
+                this.disableMapControls();
             }
 
             handleInputClick(e) {
                 e.stopPropagation(); // Prevent map from capturing the event
+                this.disableMapControls();
+            }
+
+            handleSelectBlur(e) {
+                e.stopPropagation();
+                // Re-enable map controls after a short delay
+                setTimeout(() => this.enableMapControls(), 100);
+            }
+
+            handleSelectMouseLeave(e) {
+                e.stopPropagation();
+                // Re-enable map controls after a short delay
+                setTimeout(() => this.enableMapControls(), 100);
+            }
+
+            handleInputBlur(e) {
+                e.stopPropagation();
+                // Re-enable map controls after a short delay
+                setTimeout(() => this.enableMapControls(), 100);
+            }
+
+            handleInputMouseLeave(e) {
+                e.stopPropagation();
+                // Re-enable map controls after a short delay
+                setTimeout(() => this.enableMapControls(), 100);
+            }
+
+            disableMapControls() {
+                // Temporarily disable Cesium camera controls
+                if (window.hazardMap && window.hazardMap.mapManager && window.hazardMap.mapManager.viewer) {
+                    const viewer = window.hazardMap.mapManager.viewer;
+                    if (viewer.scene && viewer.scene.screenSpaceCameraController) {
+                        viewer.scene.screenSpaceCameraController.enableRotate = false;
+                        viewer.scene.screenSpaceCameraController.enableZoom = false;
+                        viewer.scene.screenSpaceCameraController.enableTranslate = false;
+                        viewer.scene.screenSpaceCameraController.enableTilt = false;
+                        viewer.scene.screenSpaceCameraController.enableLook = false;
+                    }
+                }
+            }
+
+            enableMapControls() {
+                // Re-enable Cesium camera controls
+                if (window.hazardMap && window.hazardMap.mapManager && window.hazardMap.mapManager.viewer) {
+                    const viewer = window.hazardMap.mapManager.viewer;
+                    if (viewer.scene && viewer.scene.screenSpaceCameraController) {
+                        viewer.scene.screenSpaceCameraController.enableRotate = true;
+                        viewer.scene.screenSpaceCameraController.enableZoom = true;
+                        viewer.scene.screenSpaceCameraController.enableTranslate = true;
+                        viewer.scene.screenSpaceCameraController.enableTilt = true;
+                        viewer.scene.screenSpaceCameraController.enableLook = true;
+                    }
+                }
             }
 
             handleSelectChange(e) {
