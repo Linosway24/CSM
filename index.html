@@ -44,11 +44,6 @@
             height: calc(100vh - 80px);
         }
 
-        .map-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
 
         .sidebar-section {
             width: 400px;
@@ -640,10 +635,8 @@
 
         <!-- Main Content Area -->
         <div class="main-content">
-            <!-- Map Section -->
-            <div class="map-section">
-                <!-- Control Panel -->
-                <div class="control-panel" id="controlPanel">
+            <!-- Control Panel -->
+            <div class="control-panel" id="controlPanel">
                 <div class="panel-section">
                     <h3>Hazard Filters</h3>
                     
@@ -743,7 +736,6 @@
                     <p>Loading Google Photorealistic 3D Tiles...</p>
                     <p>This may take a moment...</p>
                 </div>
-            </div>
             </div>
 
             <!-- Sidebar Section -->
@@ -2267,7 +2259,7 @@
                         }
                     }
                     
-                    this.zoomToHazard(clickedEntity, props);
+                    // Auto-zoom disabled - map stays still
                 };
 
                 // Store click handler for polygon
@@ -2595,26 +2587,7 @@
                     this.currentHazardEntity = polygonEntity; // Fallback to polygon entity
                 }
                 
-                if (polygonEntity) {
-                    console.log('Calling zoomToHazard for navigation...');
-                    this.zoomToHazard(polygonEntity, currentHazard.properties);
-                } else {
-                    console.log('Polygon entity not found for hazard ID:', hazardId);
-                    // List all available entities for debugging
-                    const allEntities = this.viewer.entities.values;
-                    console.log('All available entities:');
-                    allEntities.forEach(entity => {
-                        if (entity.id) {
-                            console.log(`  - ${entity.id}: ${entity.name}`);
-                        }
-                    });
-                    
-                    // Try to use the hazard coordinates directly if entity not found
-                    console.log('Attempting to zoom using hazard coordinates directly...');
-                    if (currentHazard.geometry && currentHazard.geometry.coordinates) {
-                        this.zoomToHazardCoordinates(currentHazard.geometry.coordinates[0], currentHazard.properties);
-                    }
-                }
+                // Auto-zoom navigation disabled - map stays still
             }
 
             // Alternative zoom method using coordinates directly
