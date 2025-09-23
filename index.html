@@ -4617,27 +4617,27 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${this.hazardRows.map((studentRow, index) => {
-                                // Find matching reference data
-                                const referenceRow = referenceData.find(ref => 
-                                    ref.source.toLowerCase() === studentRow.source.toLowerCase()
+                            ${referenceData.map((referenceRow, index) => {
+                                // Find matching student data for this reference row
+                                const studentRow = this.hazardRows.find(student => 
+                                    student.source && student.source.toLowerCase() === referenceRow.source.toLowerCase()
                                 );
                                 
-                                if (!referenceRow) {
-                                    // Show empty row if no matching reference
+                                if (!studentRow) {
+                                    // Show empty row if student hasn't filled this hazard
                                     return `
                                         <tr style="background: #fff8f8;">
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${studentRow.hazardId || index + 1}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.source || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.environmentalMedium || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.healthThreat || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.exposureRoute || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.populationAffected || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.existingControls || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.frequencyDuration || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.severity || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.probability || 'Not filled'}</td>
-                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; background: #fff3cd;">${studentRow.risk || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${referenceRow.hazardId}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">Not filled</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; background: #fff3cd;">Not filled</td>
                                         </tr>
                                     `;
                                 }
@@ -4647,7 +4647,7 @@
                                 
                                 return `
                                     <tr style="background: #fff8f8;">
-                                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${studentRow.hazardId || index + 1}</td>
+                                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${referenceRow.hazardId}</td>
                                         ${fields.map(field => {
                                             const studentValue = studentRow[field] || '';
                                             const referenceValue = referenceRow[field] || '';
