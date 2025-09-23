@@ -3748,6 +3748,196 @@
                 }
             }
 
+            generateCorrectCSMTable() {
+                const referenceData = [
+                    {
+                        hazardId: 1,
+                        source: 'Engine Testing Pad',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'Respiratory',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Workers',
+                        existingControls: 'PPE',
+                        frequencyDuration: 'Daily',
+                        severity: 'High',
+                        probability: 'High',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 2,
+                        source: 'Aircraft Fuel Tanks',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Chemical',
+                        exposureRoute: 'Dermal',
+                        populationAffected: 'Workers',
+                        existingControls: 'Containment',
+                        frequencyDuration: 'Continuous',
+                        severity: 'High',
+                        probability: 'Medium',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 3,
+                        source: 'Legacy Burn Pit',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Chemical',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Workers',
+                        existingControls: 'Monitoring',
+                        frequencyDuration: 'Historical',
+                        severity: 'Medium',
+                        probability: 'Low',
+                        risk: 'Medium'
+                    }
+                ];
+
+                return `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #28a745; color: white;">
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">ID</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Source</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Medium</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Threat</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Route</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Population</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Controls</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Frequency</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Severity</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Probability</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${referenceData.map(row => `
+                                <tr style="background: #f8fff8;">
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.hazardId}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.source}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.severity}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.probability}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            generateStudentCSMTable(results) {
+                const referenceData = [
+                    {
+                        hazardId: 1,
+                        source: 'Engine Testing Pad',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'Respiratory',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Workers',
+                        existingControls: 'PPE',
+                        frequencyDuration: 'Daily',
+                        severity: 'High',
+                        probability: 'High',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 2,
+                        source: 'Aircraft Fuel Tanks',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Chemical',
+                        exposureRoute: 'Dermal',
+                        populationAffected: 'Workers',
+                        existingControls: 'Containment',
+                        frequencyDuration: 'Continuous',
+                        severity: 'High',
+                        probability: 'Medium',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 3,
+                        source: 'Legacy Burn Pit',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Chemical',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Workers',
+                        existingControls: 'Monitoring',
+                        frequencyDuration: 'Historical',
+                        severity: 'Medium',
+                        probability: 'Low',
+                        risk: 'Medium'
+                    }
+                ];
+
+                return `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #dc3545; color: white;">
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">ID</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Source</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Medium</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Threat</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Route</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Population</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Controls</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Frequency</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Severity</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Probability</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.hazardRows.map((studentRow, index) => {
+                                // Find matching reference data
+                                const referenceRow = referenceData.find(ref => 
+                                    ref.source.toLowerCase() === studentRow.source.toLowerCase()
+                                );
+                                
+                                if (!referenceRow) {
+                                    // Show empty row if no matching reference
+                                    return `
+                                        <tr style="background: #fff8f8;">
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${studentRow.hazardId || index + 1}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.source || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.environmentalMedium || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.healthThreat || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.exposureRoute || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.populationAffected || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.existingControls || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.frequencyDuration || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.severity || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fff3cd;">${studentRow.probability || 'Not filled'}</td>
+                                            <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold; background: #fff3cd;">${studentRow.risk || 'Not filled'}</td>
+                                        </tr>
+                                    `;
+                                }
+
+                                // Compare each field and color code
+                                const fields = ['source', 'environmentalMedium', 'healthThreat', 'exposureRoute', 'populationAffected', 'existingControls', 'frequencyDuration', 'severity', 'probability', 'risk'];
+                                
+                                return `
+                                    <tr style="background: #fff8f8;">
+                                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${studentRow.hazardId || index + 1}</td>
+                                        ${fields.map(field => {
+                                            const studentValue = studentRow[field] || '';
+                                            const referenceValue = referenceRow[field] || '';
+                                            const isCorrect = studentValue.toLowerCase() === referenceValue.toLowerCase();
+                                            const backgroundColor = isCorrect ? '#d4edda' : '#f8d7da';
+                                            const textColor = isCorrect ? '#155724' : '#721c24';
+                                            
+                                            return `<td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: ${textColor}; font-weight: ${field === 'risk' ? 'bold' : 'normal'};">${studentValue || 'Not filled'}</td>`;
+                                        }).join('')}
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
             clearForm() {
                 this.hazardRows = [];
                 this.addInitialRow();
@@ -3911,8 +4101,8 @@
                     background: white;
                     padding: 2rem;
                     border-radius: 8px;
-                    max-width: 900px;
-                    max-height: 85vh;
+                    max-width: 1400px;
+                    max-height: 90vh;
                     overflow-y: auto;
                     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 `;
@@ -3940,65 +4130,19 @@
                             <div style="color: #721c24;">Missing</div>
                         </div>
                     </div>
-                    <div style="max-height: 400px; overflow-y: auto;">
-                        ${results.details.map(detail => `
-                            <div style="margin: 1rem 0; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden;">
-                                <div style="padding: 1rem; background: ${
-                                    detail.status === 'correct' ? '#d4edda' : 
-                                    detail.status === 'partial' ? '#fff3cd' : '#f8d7da'
-                                }; border-bottom: 1px solid #dee2e6;">
-                                    <h3 style="margin: 0; color: ${
-                                        detail.status === 'correct' ? '#155724' : 
-                                        detail.status === 'partial' ? '#856404' : '#721c24'
-                                    };">
-                                        Row ${detail.row}: ${detail.source || 'Unknown Source'}
-                                    </h3>
-                                    <p style="margin: 0.5rem 0 0 0; color: ${
-                                        detail.status === 'correct' ? '#155724' : 
-                                        detail.status === 'partial' ? '#856404' : '#721c24'
-                                    };">
-                                        ${detail.message}
-                                    </p>
-                                </div>
-                                ${detail.fieldResults ? `
-                                    <div style="padding: 1rem;">
-                                        <h4 style="margin: 0 0 1rem 0; color: #333;">Field-by-Field Comparison:</h4>
-                                        <div style="overflow-x: auto;">
-                                            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                                                <thead>
-                                                    <tr style="background: #f8f9fa;">
-                                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #dee2e6; font-weight: bold;">Field</th>
-                                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #dee2e6; font-weight: bold; color: #dc3545;">Your Answer</th>
-                                                        <th style="padding: 0.5rem; text-align: left; border: 1px solid #dee2e6; font-weight: bold; color: #28a745;">Correct Answer</th>
-                                                        <th style="padding: 0.5rem; text-align: center; border: 1px solid #dee2e6; font-weight: bold;">Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    ${detail.fieldResults.map(field => `
-                                                        <tr style="background: ${field.status === 'correct' ? '#f8fff8' : '#fff8f8'};">
-                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; font-weight: 500;">
-                                                                ${field.field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                                                            </td>
-                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; color: ${field.status === 'correct' ? '#155724' : '#721c24'};">
-                                                                ${field.student || 'Not answered'}
-                                                            </td>
-                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; color: #155724;">
-                                                                ${field.reference}
-                                                            </td>
-                                                            <td style="padding: 0.5rem; border: 1px solid #dee2e6; text-align: center;">
-                                                                <span style="color: ${field.status === 'correct' ? '#28a745' : '#dc3545'}; font-weight: bold; font-size: 16px;">
-                                                                    ${field.status === 'correct' ? '✓' : '✗'}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    `).join('')}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                ` : ''}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1rem 0;">
+                        <div>
+                            <h3 style="margin: 0 0 1rem 0; color: #28a745; text-align: center;">Correct CSM Form</h3>
+                            <div style="max-height: 400px; overflow-y: auto; border: 2px solid #28a745; border-radius: 8px;">
+                                ${this.generateCorrectCSMTable()}
                             </div>
-                        `).join('')}
+                        </div>
+                        <div>
+                            <h3 style="margin: 0 0 1rem 0; color: #dc3545; text-align: center;">Your CSM Form</h3>
+                            <div style="max-height: 400px; overflow-y: auto; border: 2px solid #dc3545; border-radius: 8px;">
+                                ${this.generateStudentCSMTable(results)}
+                            </div>
+                        </div>
                     </div>
                     <div style="text-align: center; margin-top: 1rem;">
                         <button onclick="this.closest('.modal').remove()" style="
