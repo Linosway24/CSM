@@ -3418,26 +3418,26 @@
                         <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 12px; padding: 3px; text-align: center; font-weight: bold;"></td>
                         <td><select data-field="source" data-index="${index}">
                             <option value="">Select Source</option>
-                            <option value="Engine Testing Pad">Engine Testing Pad</option>
-                            <option value="Aircraft Fuel Tanks">Aircraft Fuel Tanks</option>
-                            <option value="Legacy Burn Pit">Legacy Burn Pit</option>
-                            <option value="Welding Shop">Welding Shop</option>
-                            <option value="Historic Landfill">Historic Landfill</option>
-                            <option value="Field Training Area">Field Training Area</option>
-                            <option value="Field Water System">Field Water System</option>
-                            <option value="Municipal Water System">Municipal Water System</option>
-                            <option value="Arthropod Vectors">Arthropod Vectors</option>
-                            <option value="Other">Other</option>
+                            <option value="Engine Testing Pad" ${row.source === 'Engine Testing Pad' ? 'selected' : ''}>Engine Testing Pad</option>
+                            <option value="Aircraft Fuel Tanks" ${row.source === 'Aircraft Fuel Tanks' ? 'selected' : ''}>Aircraft Fuel Tanks</option>
+                            <option value="Legacy Burn Pit" ${row.source === 'Legacy Burn Pit' ? 'selected' : ''}>Legacy Burn Pit</option>
+                            <option value="Welding Shop" ${row.source === 'Welding Shop' ? 'selected' : ''}>Welding Shop</option>
+                            <option value="Historic Landfill" ${row.source === 'Historic Landfill' ? 'selected' : ''}>Historic Landfill</option>
+                            <option value="Field Training Area" ${row.source === 'Field Training Area' ? 'selected' : ''}>Field Training Area</option>
+                            <option value="Field Water System" ${row.source === 'Field Water System' ? 'selected' : ''}>Field Water System</option>
+                            <option value="Municipal Water System" ${row.source === 'Municipal Water System' ? 'selected' : ''}>Municipal Water System</option>
+                            <option value="Arthropod Vectors" ${row.source === 'Arthropod Vectors' ? 'selected' : ''}>Arthropod Vectors</option>
+                            <option value="Other" ${row.source === 'Other' ? 'selected' : ''}>Other</option>
                         </select></td>
                         <td><select data-field="environmentalMedium" data-index="${index}">
                             <option value="">Select Medium</option>
-                            <option value="Air">Air</option>
-                            <option value="Soil">Soil</option>
-                            <option value="Groundwater">Groundwater</option>
-                            <option value="Surface Water">Surface Water</option>
-                            <option value="Sediment">Sediment</option>
-                            <option value="Biota">Biota</option>
-                            <option value="Auditory">Auditory</option>
+                            <option value="Air" ${row.environmentalMedium === 'Air' ? 'selected' : ''}>Air</option>
+                            <option value="Soil" ${row.environmentalMedium === 'Soil' ? 'selected' : ''}>Soil</option>
+                            <option value="Groundwater" ${row.environmentalMedium === 'Groundwater' ? 'selected' : ''}>Groundwater</option>
+                            <option value="Surface Water" ${row.environmentalMedium === 'Surface Water' ? 'selected' : ''}>Surface Water</option>
+                            <option value="Sediment" ${row.environmentalMedium === 'Sediment' ? 'selected' : ''}>Sediment</option>
+                            <option value="Biota" ${row.environmentalMedium === 'Biota' ? 'selected' : ''}>Biota</option>
+                            <option value="Auditory" ${row.environmentalMedium === 'Auditory' ? 'selected' : ''}>Auditory</option>
                         </select></td>
                         <td><select data-field="healthThreat" data-index="${index}">
                             <option value="">Select Threat</option>
@@ -3522,13 +3522,13 @@
                         </select></td>
                         <td><select data-field="risk" data-index="${index}">
                             <option value="">Select Risk</option>
-                            <option value="Acceptable">Acceptable</option>
-                            <option value="Low Risk">Low Risk</option>
-                            <option value="Medium Risk">Medium Risk</option>
-                            <option value="High Risk">High Risk</option>
-                            <option value="Unacceptable">Unacceptable</option>
-                            <option value="Extremely High">Extremely High</option>
-                            <option value="Moderate">Moderate</option>
+                            <option value="Acceptable" ${row.risk === 'Acceptable' ? 'selected' : ''}>Acceptable</option>
+                            <option value="Low Risk" ${row.risk === 'Low Risk' ? 'selected' : ''}>Low Risk</option>
+                            <option value="Medium Risk" ${row.risk === 'Medium Risk' ? 'selected' : ''}>Medium Risk</option>
+                            <option value="High Risk" ${row.risk === 'High Risk' ? 'selected' : ''}>High Risk</option>
+                            <option value="Unacceptable" ${row.risk === 'Unacceptable' ? 'selected' : ''}>Unacceptable</option>
+                            <option value="Extremely High" ${row.risk === 'Extremely High' ? 'selected' : ''}>Extremely High</option>
+                            <option value="Moderate" ${row.risk === 'Moderate' ? 'selected' : ''}>Moderate</option>
                         </select></td>
                     `;
                     tbody.appendChild(tr);
@@ -3542,20 +3542,32 @@
                 const inputs = document.querySelectorAll('.csm-form-table input');
 
                 selects.forEach(select => {
-                    select.addEventListener('change', (e) => {
-                        const field = e.target.dataset.field;
-                        const index = parseInt(e.target.dataset.index);
-                        this.hazardRows[index][field] = e.target.value;
-                    });
+                    // Remove existing listeners to prevent duplicates
+                    select.removeEventListener('change', this.handleSelectChange);
+                    // Add new listener
+                    select.addEventListener('change', this.handleSelectChange.bind(this));
                 });
 
                 inputs.forEach(input => {
-                    input.addEventListener('input', (e) => {
-                        const field = e.target.dataset.field;
-                        const index = parseInt(e.target.dataset.index);
-                        this.hazardRows[index][field] = e.target.value;
-                    });
+                    // Remove existing listeners to prevent duplicates
+                    input.removeEventListener('input', this.handleInputChange);
+                    // Add new listener
+                    input.addEventListener('input', this.handleInputChange.bind(this));
                 });
+            }
+
+            handleSelectChange(e) {
+                const field = e.target.dataset.field;
+                const index = parseInt(e.target.dataset.index);
+                this.hazardRows[index][field] = e.target.value;
+                // Don't re-render the table, just update the data
+            }
+
+            handleInputChange(e) {
+                const field = e.target.dataset.field;
+                const index = parseInt(e.target.dataset.index);
+                this.hazardRows[index][field] = e.target.value;
+                // Don't re-render the table, just update the data
             }
 
             populateFromMapData(hazardData) {
