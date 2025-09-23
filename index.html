@@ -3692,21 +3692,10 @@
                         </select></td>
                         <td><select data-field="risk" data-index="${index}">
                             <option value="">Select Risk</option>
-                            <option value="Acceptable" ${row.risk === 'Acceptable' ? 'selected' : ''}>Acceptable</option>
-                            <option value="Critical" ${row.risk === 'Critical' ? 'selected' : ''}>Critical</option>
                             <option value="Extremely High" ${row.risk === 'Extremely High' ? 'selected' : ''}>Extremely High</option>
                             <option value="High" ${row.risk === 'High' ? 'selected' : ''}>High</option>
-                            <option value="High Risk" ${row.risk === 'High Risk' ? 'selected' : ''}>High Risk</option>
-                            <option value="Intolerable" ${row.risk === 'Intolerable' ? 'selected' : ''}>Intolerable</option>
-                            <option value="Low Risk" ${row.risk === 'Low Risk' ? 'selected' : ''}>Low Risk</option>
-                            <option value="Medium Risk" ${row.risk === 'Medium Risk' ? 'selected' : ''}>Medium Risk</option>
+                            <option value="Low" ${row.risk === 'Low' ? 'selected' : ''}>Low</option>
                             <option value="Moderate" ${row.risk === 'Moderate' ? 'selected' : ''}>Moderate</option>
-                            <option value="Negligible" ${row.risk === 'Negligible' ? 'selected' : ''}>Negligible</option>
-                            <option value="Significant" ${row.risk === 'Significant' ? 'selected' : ''}>Significant</option>
-                            <option value="Tolerable" ${row.risk === 'Tolerable' ? 'selected' : ''}>Tolerable</option>
-                            <option value="Unacceptable" ${row.risk === 'Unacceptable' ? 'selected' : ''}>Unacceptable</option>
-                            <option value="Very High" ${row.risk === 'Very High' ? 'selected' : ''}>Very High</option>
-                            <option value="Very Low" ${row.risk === 'Very Low' ? 'selected' : ''}>Very Low</option>
                         </select></td>
                     `;
                     tbody.appendChild(tr);
