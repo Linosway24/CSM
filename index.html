@@ -88,17 +88,25 @@
             flex: 1;
             padding: 1rem;
             overflow-x: auto;
-            overflow-y: hidden;
+            overflow-y: auto;
             color: #333;
             font-size: 1rem;
         }
 
         /* CSM Form Styles */
+        .csm-form-table-wrapper {
+            max-height: calc(25vh - 120px);
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+
         .csm-form-table {
             width: 100%;
             min-width: 1200px;
             border-collapse: collapse;
-            margin-bottom: 1rem;
+            margin-bottom: 0;
             font-size: 12px;
         }
 
@@ -856,7 +864,8 @@
                 <h2>CSM Spreadsheet</h2>
             </div>
             <div class="sidebar-content">
-                <table class="csm-form-table">
+                <div class="csm-form-table-wrapper">
+                    <table class="csm-form-table">
                     <thead>
                         <tr>
                             <th style="width: 6%;">Hazard ID</th>
@@ -876,6 +885,7 @@
                         <!-- Rows will be dynamically added here -->
                     </tbody>
                 </table>
+                </div>
             </div>
             <div class="csm-form-actions">
                 <button class="csm-btn csm-btn-primary" id="addHazardRow">Add Hazard</button>
