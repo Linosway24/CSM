@@ -46,7 +46,7 @@
 
 
         .sidebar-section {
-            width: 400px;
+            width: 800px;
             background-color: #f8f9fa;
             border-left: 2px solid #dee2e6;
             display: flex;
@@ -114,10 +114,13 @@
         }
 
         .csm-form-actions {
-            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #e9ecef;
+            border-top: 1px solid #dee2e6;
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
+            justify-content: center;
         }
 
         .csm-btn {
@@ -817,40 +820,31 @@
                         <table class="csm-form-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 12%;">Hazard ID</th>
-                                    <th style="width: 15%;">Hazard Type</th>
-                                    <th style="width: 12%;">Location</th>
-                                    <th style="width: 12%;">Environmental Medium</th>
-                                    <th style="width: 12%;">Health Threat</th>
-                                    <th style="width: 12%;">Exposure Route</th>
-                                    <th style="width: 12%;">Population Affected</th>
-                                    <th style="width: 13%;">Existing Controls</th>
+                                    <th style="width: 6%;">Hazard ID</th>
+                                    <th style="width: 8%;">Hazard Type</th>
+                                    <th style="width: 6%;">Location</th>
+                                    <th style="width: 6%;">Environmental Medium</th>
+                                    <th style="width: 6%;">Health Threat</th>
+                                    <th style="width: 6%;">Exposure Route</th>
+                                    <th style="width: 6%;">Population Affected</th>
+                                    <th style="width: 6%;">Existing Controls</th>
+                                    <th style="width: 8%;">Frequency/Duration</th>
+                                    <th style="width: 6%;">Severity</th>
+                                    <th style="width: 6%;">Probability</th>
+                                    <th style="width: 10%;">Risk Assessment</th>
+                                    <th style="width: 8%;">Recommended Actions</th>
+                                    <th style="width: 16%;">Notes</th>
                                 </tr>
                             </thead>
                             <tbody id="csmFormBody">
                                 <!-- Rows will be dynamically added here -->
                             </tbody>
                         </table>
-                        <table class="csm-form-table" style="margin-top: 1rem;">
-                            <thead>
-                                <tr>
-                                    <th style="width: 15%;">Frequency/Duration</th>
-                                    <th style="width: 12%;">Severity</th>
-                                    <th style="width: 12%;">Probability</th>
-                                    <th style="width: 20%;">Risk Assessment</th>
-                                    <th style="width: 15%;">Recommended Actions</th>
-                                    <th style="width: 26%;">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody id="csmFormBody2">
-                                <!-- Rows will be dynamically added here -->
-                            </tbody>
-                        </table>
-                        <div class="csm-form-actions">
-                            <button class="csm-btn csm-btn-primary" id="addHazardRow">Add Hazard</button>
-                            <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
-                            <button class="csm-btn csm-btn-primary" id="exportCSM">Export CSM</button>
-                        </div>
+                    </div>
+                    <div class="csm-form-actions">
+                        <button class="csm-btn csm-btn-primary" id="addHazardRow">Add Hazard</button>
+                        <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
+                        <button class="csm-btn csm-btn-primary" id="exportCSM">Export CSM</button>
                     </div>
                 </div>
         </div>
@@ -3411,16 +3405,12 @@
             }
 
             renderRows() {
-                const tbody1 = document.getElementById('csmFormBody');
-                const tbody2 = document.getElementById('csmFormBody2');
-                
-                tbody1.innerHTML = '';
-                tbody2.innerHTML = '';
+                const tbody = document.getElementById('csmFormBody');
+                tbody.innerHTML = '';
 
                 this.hazardRows.forEach((row, index) => {
-                    // First table row
-                    const tr1 = document.createElement('tr');
-                    tr1.innerHTML = `
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
                         <td><select data-field="hazardId" data-index="${index}">
                             <option value="">Select ID</option>
                             <option value="H1">H1</option>
@@ -3498,12 +3488,6 @@
                             <option value="Monitoring">Monitoring</option>
                             <option value="Multiple">Multiple</option>
                         </select></td>
-                    `;
-                    tbody1.appendChild(tr1);
-
-                    // Second table row
-                    const tr2 = document.createElement('tr');
-                    tr2.innerHTML = `
                         <td><select data-field="frequencyDuration" data-index="${index}">
                             <option value="">Select Frequency</option>
                             <option value="Continuous">Continuous</option>
@@ -3546,7 +3530,7 @@
                         </select></td>
                         <td><input type="text" data-field="notes" data-index="${index}" placeholder="Notes..." style="width: 100%; border: none; background: transparent; font-size: 11px; padding: 2px;"></td>
                     `;
-                    tbody2.appendChild(tr2);
+                    tbody.appendChild(tr);
                 });
 
                 this.addInputEventListeners();
