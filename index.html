@@ -3440,6 +3440,7 @@
                 this.hazardRows = [];
                 this.initEventListeners();
                 this.addInitialRow();
+                this.setupScrollListener();
             }
 
             initEventListeners() {
@@ -3480,7 +3481,7 @@
                 this.scrollToBottom();
             }
 
-            renderRows() {
+            renderRows(showAll = false) {
                 const tbody = document.getElementById('csmFormBody');
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 tbody.innerHTML = '';
@@ -3491,6 +3492,10 @@
                     // Show all rows for first 2 hazards
                     rowsToShow = this.hazardRows;
                     wrapper.classList.add('show-all');
+                } else if (showAll) {
+                    // Show all rows when manually scrolling
+                    rowsToShow = this.hazardRows;
+                    wrapper.classList.remove('show-all');
                 } else {
                     // Show sliding window starting after 2nd hazard (show last 2)
                     rowsToShow = this.hazardRows.slice(-2);
@@ -3785,6 +3790,25 @@
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 if (wrapper) {
                     wrapper.scrollTop = wrapper.scrollHeight;
+                }
+            }
+
+            setupScrollListener() {
+                const wrapper = document.querySelector('.csm-form-table-wrapper');
+                if (wrapper) {
+                    let scrollTimeout;
+                    wrapper.addEventListener('scroll', () => {
+                        // Clear existing timeout
+                        clearTimeout(scrollTimeout);
+                        
+                        // Show all rows when user scrolls
+                        this.renderRows(true);
+                        
+                        // Set timeout to return to sliding window after scroll stops
+                        scrollTimeout = setTimeout(() => {
+                            this.renderRows(false);
+                        }, 1000); // Return to sliding window after 1 second of no scrolling
+                    });
                 }
             }
 
