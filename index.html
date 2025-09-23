@@ -44,6 +44,45 @@
             height: calc(100vh - 80px);
         }
 
+        .map-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-section {
+            width: 400px;
+            background-color: #f8f9fa;
+            border-left: 2px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 2px solid #34495e;
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+
         .control-panel {
             display: none;
         }
@@ -601,8 +640,10 @@
 
         <!-- Main Content Area -->
         <div class="main-content">
-            <!-- Control Panel -->
-            <div class="control-panel" id="controlPanel">
+            <!-- Map Section -->
+            <div class="map-section">
+                <!-- Control Panel -->
+                <div class="control-panel" id="controlPanel">
                 <div class="panel-section">
                     <h3>Hazard Filters</h3>
                     
@@ -701,6 +742,17 @@
                     <div class="spinner"></div>
                     <p>Loading Google Photorealistic 3D Tiles...</p>
                     <p>This may take a moment...</p>
+                </div>
+            </div>
+            </div>
+
+            <!-- Sidebar Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-header">
+                    <h2>CSM Form</h2>
+                </div>
+                <div class="sidebar-content">
+                    <p>CSM form will be added here</p>
                 </div>
             </div>
         </div>
