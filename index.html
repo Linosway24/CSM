@@ -225,6 +225,15 @@
             background-color: #545b62;
         }
 
+        .csm-btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .csm-btn-danger:hover {
+            background-color: #c82333;
+        }
+
         .control-panel {
             display: none;
         }
@@ -920,7 +929,8 @@
             <div class="csm-form-actions">
                 <button class="csm-btn csm-btn-primary" id="addHazardRow">Add Hazard</button>
                 <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
-                <button class="csm-btn csm-btn-primary" id="checkCSM">Check CSM</button>
+                <button class="csm-btn csm-btn-primary" id="riskLevelOrder">Risk Level Order</button>
+                <button class="csm-btn csm-btn-danger" id="riskMatrix">Risk Matrix</button>
             </div>
         </div>
 
@@ -3495,8 +3505,12 @@
                     this.clearForm();
                 });
 
-                document.getElementById('checkCSM').addEventListener('click', () => {
-                    this.checkCSM();
+                document.getElementById('riskLevelOrder').addEventListener('click', () => {
+                    this.showRiskLevelOrder();
+                });
+
+                document.getElementById('riskMatrix').addEventListener('click', () => {
+                    this.showRiskMatrix();
                 });
             }
 
@@ -3563,8 +3577,6 @@
                         <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 14px; padding: 3px; text-align: center; font-weight: bold;"></td>
                         <td><select data-field="source" data-index="${index}">
                             <option value="">Select Source</option>
-                            <option value="(HazMat Storage Area" ${row.source === '(HazMat Storage Area' ? 'selected' : ''}>(HazMat Storage Area</option>
-                            <option value="Aircraft Mx Paint Booth" ${row.source === 'Aircraft Mx Paint Booth' ? 'selected' : ''}>Aircraft Mx Paint Booth</option>
                             <option value="Aircraft fuel tanks" ${row.source === 'Aircraft fuel tanks' ? 'selected' : ''}>Aircraft fuel tanks</option>
                             <option value="Arthropod Vectors" ${row.source === 'Arthropod Vectors' ? 'selected' : ''}>Arthropod Vectors</option>
                             <option value="Base CATM Range" ${row.source === 'Base CATM Range' ? 'selected' : ''}>Base CATM Range</option>
@@ -3572,19 +3584,22 @@
                             <option value="Chemical Lab" ${row.source === 'Chemical Lab' ? 'selected' : ''}>Chemical Lab</option>
                             <option value="Cryogenics Shop" ${row.source === 'Cryogenics Shop' ? 'selected' : ''}>Cryogenics Shop</option>
                             <option value="Field Training Area" ${row.source === 'Field Training Area' ? 'selected' : ''}>Field Training Area</option>
-                            <option value="Field Water Supply System" ${row.source === 'Field Water Supply System' ? 'selected' : ''}>Field Water Supply System</option>
+                            <option value="Field Water System" ${row.source === 'Field Water System' ? 'selected' : ''}>Field Water System</option>
+                            <option value="Forest Fire" ${row.source === 'Forest Fire' ? 'selected' : ''}>Forest Fire</option>
                             <option value="Fuel truck refueling" ${row.source === 'Fuel truck refueling' ? 'selected' : ''}>Fuel truck refueling</option>
                             <option value="Gate Area" ${row.source === 'Gate Area' ? 'selected' : ''}>Gate Area</option>
                             <option value="Gym Sauna" ${row.source === 'Gym Sauna' ? 'selected' : ''}>Gym Sauna</option>
+                            <option value="HazMat Storage Area" ${row.source === 'HazMat Storage Area' ? 'selected' : ''}>HazMat Storage Area</option>
                             <option value="Historic Landfill" ${row.source === 'Historic Landfill' ? 'selected' : ''}>Historic Landfill</option>
                             <option value="Jet engine testing pad" ${row.source === 'Jet engine testing pad' ? 'selected' : ''}>Jet engine testing pad</option>
                             <option value="Legacy burn pit" ${row.source === 'Legacy burn pit' ? 'selected' : ''}>Legacy burn pit</option>
                             <option value="Mechanical Shop" ${row.source === 'Mechanical Shop' ? 'selected' : ''}>Mechanical Shop</option>
                             <option value="Medical X-ray" ${row.source === 'Medical X-ray' ? 'selected' : ''}>Medical X-ray</option>
+                            <option value="Municipal Water Supply" ${row.source === 'Municipal Water Supply' ? 'selected' : ''}>Municipal Water Supply</option>
                             <option value="Municipal Water System" ${row.source === 'Municipal Water System' ? 'selected' : ''}>Municipal Water System</option>
+                            <option value="Paint Shop" ${row.source === 'Paint Shop' ? 'selected' : ''}>Paint Shop</option>
                             <option value="Pest Control" ${row.source === 'Pest Control' ? 'selected' : ''}>Pest Control</option>
                             <option value="Satellite comms dish" ${row.source === 'Satellite comms dish' ? 'selected' : ''}>Satellite comms dish</option>
-                            <option value="Seasonal Forest Forest Fire" ${row.source === 'Seasonal Forest Forest Fire' ? 'selected' : ''}>Seasonal Forest Forest Fire</option>
                             <option value="Warehouse" ${row.source === 'Warehouse' ? 'selected' : ''}>Warehouse</option>
                             <option value="Welding shop" ${row.source === 'Welding shop' ? 'selected' : ''}>Welding shop</option>
                         </select></td>
@@ -4741,6 +4756,755 @@
             clearForm() {
                 this.hazardRows = [];
                 this.addInitialRow();
+            }
+
+            showRiskLevelOrder() {
+                // Bring risk matrix to front if it's open
+                const riskMatrix = document.getElementById('riskMatrixViewer');
+                if (riskMatrix) {
+                    riskMatrix.style.zIndex = '10001';
+                }
+                
+                // Create modal to show CSM spreadsheet for reordering
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+                
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    max-width: 95%;
+                    max-height: 90%;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                `;
+                
+                modalContent.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="margin: 0; color: #2c3e50;">Risk Level Order - Drag to Reorder</h2>
+                        <button id="submitRiskOrder" style="background: #28a745; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Submit</button>
+                    </div>
+                    <div id="reorderableTable" style="overflow-x: auto;">
+                        ${this.generateReorderableTable()}
+                    </div>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                // Setup drag and drop functionality
+                this.setupDragAndDrop();
+                
+                // Submit handler
+                document.getElementById('submitRiskOrder').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                    // Restore risk matrix z-index before showing comparison
+                    const riskMatrix = document.getElementById('riskMatrixViewer');
+                    if (riskMatrix) {
+                        riskMatrix.style.zIndex = '10000';
+                    }
+                    this.showSideBySideComparison();
+                });
+                
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+            }
+            
+            generateReorderableTable() {
+                return `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 5%;">Order</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 12%;">Source</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 10%;">Environmental Medium</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 10%;">Health Threat</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 10%;">Exposure Route</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 10%;">Population Affected</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 10%;">Existing Controls</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 10%;">Frequency/Duration</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 8%;">Severity</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 8%;">Probability</th>
+                                <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 8%;">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reorderableTableBody">
+                            ${this.hazardRows.map((row, index) => `
+                                <tr draggable="true" data-index="${index}" style="cursor: move; background: ${index % 2 === 0 ? '#f8f9fa' : 'white'};">
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.source || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.severity || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.probability || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk || 'Not Set'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+            
+            setupDragAndDrop() {
+                const tbody = document.getElementById('reorderableTableBody');
+                let draggedElement = null;
+                
+                // Add drag event listeners to all rows
+                tbody.addEventListener('dragstart', (e) => {
+                    draggedElement = e.target;
+                    e.target.style.opacity = '0.5';
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                
+                tbody.addEventListener('dragend', (e) => {
+                    e.target.style.opacity = '';
+                    draggedElement = null;
+                });
+                
+                tbody.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+                
+                tbody.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    
+                    if (draggedElement && e.target.tagName === 'TD') {
+                        const targetRow = e.target.closest('tr');
+                        const draggedIndex = parseInt(draggedElement.dataset.index);
+                        const targetIndex = parseInt(targetRow.dataset.index);
+                        
+                        if (draggedIndex !== targetIndex) {
+                            // Reorder the hazardRows array
+                            const draggedRow = this.hazardRows.splice(draggedIndex, 1)[0];
+                            this.hazardRows.splice(targetIndex, 0, draggedRow);
+                            
+                            // Update the table display
+                            this.updateReorderableTable();
+                            
+                            // Update the main CSM form
+                            this.renderRows();
+                        }
+                    }
+                });
+            }
+            
+            updateReorderableTable() {
+                const tbody = document.getElementById('reorderableTableBody');
+                tbody.innerHTML = this.hazardRows.map((row, index) => `
+                    <tr draggable="true" data-index="${index}" style="cursor: move; background: ${index % 2 === 0 ? '#f8f9fa' : 'white'};">
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.source || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.severity || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.probability || 'Not Set'}</td>
+                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk || 'Not Set'}</td>
+                    </tr>
+                `).join('');
+                
+                // Re-setup drag and drop for the new rows
+                this.setupDragAndDrop();
+            }
+
+            showRiskMatrix() {
+                // Check if matrix is already open
+                if (document.getElementById('riskMatrixViewer')) {
+                    return;
+                }
+                
+                // Create draggable matrix viewer
+                const matrixViewer = document.createElement('div');
+                matrixViewer.id = 'riskMatrixViewer';
+                matrixViewer.style.cssText = `
+                    position: fixed;
+                    top: 50px;
+                    right: 50px;
+                    z-index: 10000;
+                    cursor: move;
+                    user-select: none;
+                `;
+                
+                matrixViewer.innerHTML = `
+                    <div style="position: relative; display: inline-block;">
+                        <img src="src/assets/Risk-Assessment-Matrix.png" alt="Risk Assessment Matrix" style="max-width: 95vw; max-height: 95vh; display: block;">
+                        <button id="closeRiskMatrix" style="position: absolute; top: 5px; right: 5px; background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold;">×</button>
+                    </div>
+                `;
+                
+                document.body.appendChild(matrixViewer);
+                
+                // Make it draggable
+                this.makeDraggable(matrixViewer);
+                
+                // Close button handler
+                document.getElementById('closeRiskMatrix').addEventListener('click', () => {
+                    document.body.removeChild(matrixViewer);
+                });
+            }
+            
+            makeDraggable(element) {
+                let isDragging = false;
+                let startX, startY, initialX, initialY;
+                
+                const dragStart = (e) => {
+                    if (e.target.tagName === 'BUTTON') return; // Don't drag when clicking buttons
+                    
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    
+                    // Get current position from transform or use 0,0
+                    const transform = element.style.transform;
+                    if (transform && transform !== 'none') {
+                        const matches = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+                        if (matches) {
+                            initialX = parseFloat(matches[1]);
+                            initialY = parseFloat(matches[2]);
+                        } else {
+                            initialX = 0;
+                            initialY = 0;
+                        }
+                    } else {
+                        initialX = 0;
+                        initialY = 0;
+                    }
+                    
+                    element.style.cursor = 'grabbing';
+                    e.preventDefault();
+                };
+                
+                const dragEnd = () => {
+                    isDragging = false;
+                    element.style.cursor = 'move';
+                };
+                
+                const drag = (e) => {
+                    if (!isDragging) return;
+                    
+                    e.preventDefault();
+                    
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+                    
+                    const newX = initialX + deltaX;
+                    const newY = initialY + deltaY;
+                    
+                    element.style.transform = `translate(${newX}px, ${newY}px)`;
+                };
+                
+                element.addEventListener('mousedown', dragStart);
+                document.addEventListener('mouseup', dragEnd);
+                document.addEventListener('mousemove', drag);
+            }
+            
+            hideRiskMatrix() {
+                const matrixViewer = document.getElementById('riskMatrixViewer');
+                if (matrixViewer) {
+                    document.body.removeChild(matrixViewer);
+                }
+            }
+
+            showSideBySideComparison() {
+                // Hide risk matrix if it's open
+                this.hideRiskMatrix();
+                
+                // Create modal for side-by-side comparison
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+                
+                const modalContent = document.createElement('div');
+                modalContent.style.cssText = `
+                    background: white;
+                    padding: 2rem;
+                    border-radius: 8px;
+                    max-width: 95%;
+                    max-height: 90%;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                `;
+                
+                modalContent.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="margin: 0; color: #2c3e50;">CSM Comparison Results</h2>
+                        <button id="closeComparison" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Close</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1rem 0;">
+                        <div>
+                            <h3 style="margin: 0 0 1rem 0; color: #28a745; text-align: center;">Correct CSM Form (Ordered by Risk)</h3>
+                            <div style="max-height: 400px; overflow-y: auto; border: 2px solid #28a745; border-radius: 8px;">
+                                ${this.generateCorrectCSMTable()}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0 0 1rem 0; color: #dc3545; text-align: center;">Your CSM Form</h3>
+                            <div style="max-height: 400px; overflow-y: auto; border: 2px solid #dc3545; border-radius: 8px;">
+                                ${this.generateStudentCSMTable()}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modal.appendChild(modalContent);
+                document.body.appendChild(modal);
+                
+                // Close modal handler
+                document.getElementById('closeComparison').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+                
+                // Close on background click
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+            }
+            
+            generateCorrectCSMTable() {
+                // Reference CSM data ordered by risk level (highest to lowest) - All 25 hazards
+                const referenceData = [
+                    // EXTREMELY HIGH RISK (1 hazard)
+                    {
+                        hazardId: 1,
+                        source: 'Jet engine testing pad',
+                        environmentalMedium: 'Auditory',
+                        healthThreat: 'Noise-Induced Hearing Loss',
+                        exposureRoute: 'Auditory',
+                        populationAffected: 'Flightline Maintainers',
+                        existingControls: 'HPDs, duty limits',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Critical (II)',
+                        probability: 'Frequent (A)',
+                        risk: 'Extremely High'
+                    },
+                    // HIGH RISK (3 hazards)
+                    {
+                        hazardId: 2,
+                        source: 'Aircraft fuel tanks',
+                        environmentalMedium: 'Soil/Groundwater',
+                        healthThreat: 'Benzene exposure',
+                        exposureRoute: 'Inhalation, Dermal',
+                        populationAffected: 'Firefighters, POL',
+                        existingControls: 'Secondary containment',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Marginal (III)',
+                        probability: 'Occasional (C)',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 3,
+                        source: 'Chemical Lab',
+                        environmentalMedium: 'Surfaces',
+                        healthThreat: 'Corrosives, toxics',
+                        exposureRoute: 'Dermal, Inhalation',
+                        populationAffected: 'Lab staff',
+                        existingControls: 'SOPs, eyewash',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Critical (II)',
+                        probability: 'Occasional (C)',
+                        risk: 'High'
+                    },
+                    {
+                        hazardId: 4,
+                        source: 'HazMat Storage Area',
+                        environmentalMedium: 'Soil/Surfaces',
+                        healthThreat: 'Drip leaks',
+                        exposureRoute: 'Dermal',
+                        populationAffected: 'CE, HAZWASTE',
+                        existingControls: 'Spill pallets',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Marginal (III)',
+                        probability: 'Seldom (D)',
+                        risk: 'High'
+                    },
+                    // MODERATE RISK (7 hazards)
+                    {
+                        hazardId: 5,
+                        source: 'Paint Shop',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'Toluene, xylene',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Painters',
+                        existingControls: 'LEV, cartridge masks',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Critical (II)',
+                        probability: 'Likely (B)',
+                        risk: 'Moderate'
+                    },
+                    {
+                        hazardId: 6,
+                        source: 'Welding shop',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'Manganese/Cr6+',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Fabricators',
+                        existingControls: 'LEV, PPE, IH surveys',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Critical (II)',
+                        probability: 'Frequent (A)',
+                        risk: 'Moderate'
+                    },
+                    {
+                        hazardId: 7,
+                        source: 'Municipal Water Supply',
+                        environmentalMedium: 'Surface Water',
+                        healthThreat: 'Pathogens, nutrients',
+                        exposureRoute: 'Ingestion, Dermal',
+                        populationAffected: 'Downstream community',
+                        existingControls: 'Chlorination, signage',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Critical (II)',
+                        probability: 'Seldom (D)',
+                        risk: 'Moderate'
+                    },
+                    {
+                        hazardId: 25,
+                        source: 'Municipal Water System',
+                        environmentalMedium: 'Water',
+                        healthThreat: 'Chlorine residual',
+                        exposureRoute: 'Ingestion',
+                        populationAffected: 'All base',
+                        existingControls: 'Online monitors',
+                        frequencyDuration: 'Continuous',
+                        severity: 'Marginal (III)',
+                        probability: 'Unlikely (E)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 8,
+                        source: 'Battery Storage',
+                        environmentalMedium: 'Air/Surface',
+                        healthThreat: 'Acid mist, Pb dust',
+                        exposureRoute: 'Dermal, Inhalation',
+                        populationAffected: 'Civil Engineers',
+                        existingControls: 'PPE, vent hoods',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Marginal (III)',
+                        probability: 'Occasional (C)',
+                        risk: 'Moderate'
+                    },
+                    {
+                        hazardId: 9,
+                        source: 'Cryogenics Shop',
+                        environmentalMedium: 'Indoor Air',
+                        healthThreat: 'Asphyxiation',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Cryo techs',
+                        existingControls: 'Monitors, ventilation',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Catastrophic (I)',
+                        probability: 'Seldom (D)',
+                        risk: 'Moderate'
+                    },
+                    {
+                        hazardId: 10,
+                        source: 'Fuel truck refueling',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'VOC vapor, spills',
+                        exposureRoute: 'Inhalation, Dermal',
+                        populationAffected: 'POL, Drivers',
+                        existingControls: 'SOPs, spill kits',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Critical (II)',
+                        probability: 'Likely (B)',
+                        risk: 'Moderate'
+                    },
+                    {
+                        hazardId: 11,
+                        source: 'Satellite comms dish',
+                        environmentalMedium: 'Radiation',
+                        healthThreat: 'RF hazard',
+                        exposureRoute: 'External',
+                        populationAffected: 'Comm technicians',
+                        existingControls: 'Time-distance-shielding',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Marginal (III)',
+                        probability: 'Seldom (D)',
+                        risk: 'Moderate'
+                    },
+                    // LOW RISK (14 hazards)
+                    {
+                        hazardId: 12,
+                        source: 'Pest Control',
+                        environmentalMedium: 'Auditory',
+                        healthThreat: 'Pesticide residues',
+                        exposureRoute: 'Dermal, Inhalation',
+                        populationAffected: 'Shoppers, workers',
+                        existingControls: 'Labeling, limited app',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Marginal (III)',
+                        probability: 'Seldom (D)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 13,
+                        source: 'Arthropod Vectors',
+                        environmentalMedium: 'Air/Biological',
+                        healthThreat: 'Vector-borne disease',
+                        exposureRoute: 'Insect bites',
+                        populationAffected: 'Outdoor personnel',
+                        existingControls: 'Repellent, Bti spray',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Critical (II)',
+                        probability: 'Occasional (C)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 14,
+                        source: 'Gym Sauna',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'Mold spores, heat stress',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Athletes',
+                        existingControls: 'Time limits, cleaning',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Negligible (IV)',
+                        probability: 'Frequent (A)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 15,
+                        source: 'Medical X-ray',
+                        environmentalMedium: 'Radiation',
+                        healthThreat: 'Ionizing radiation',
+                        exposureRoute: 'External',
+                        populationAffected: 'Staff, patients',
+                        existingControls: 'Shielding, badges',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Critical (II)',
+                        probability: 'Unlikely (E)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 16,
+                        source: 'Mechanical Shop',
+                        environmentalMedium: 'Air/Surfaces',
+                        healthThreat: 'Solvent vapors',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Maintainers',
+                        existingControls: 'LEV, respirators',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Marginal (III)',
+                        probability: 'Occasional (C)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 17,
+                        source: 'Historic Landfill',
+                        environmentalMedium: 'Groundwater',
+                        healthThreat: 'Leachate (VOCs, metals)',
+                        exposureRoute: 'Ingestion',
+                        populationAffected: 'Community well users',
+                        existingControls: 'Monitoring wells',
+                        frequencyDuration: 'Dry season',
+                        severity: 'Critical (II)',
+                        probability: 'Seldom (D)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 18,
+                        source: 'Field Training Area',
+                        environmentalMedium: 'Soil/Dust',
+                        healthThreat: 'Valley fever (fungal spores)',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Trainees',
+                        existingControls: 'Watering, timing',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Critical (II)',
+                        probability: 'Seldom (D)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 19,
+                        source: 'Field Water System',
+                        environmentalMedium: 'Surface Water',
+                        healthThreat: 'Propylene glycol',
+                        exposureRoute: 'Ingestion',
+                        populationAffected: 'Aquatic life, public',
+                        existingControls: 'Stormwater BMPs',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Marginal (III)',
+                        probability: 'Occasional (C)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 20,
+                        source: 'Base CATM Range',
+                        environmentalMedium: 'Soil',
+                        healthThreat: 'Lead, noise',
+                        exposureRoute: 'Inhalation, Ingestion',
+                        populationAffected: 'Instructors, trainees',
+                        existingControls: 'PPE, HEPA vacs',
+                        frequencyDuration: 'Weekly',
+                        severity: 'Critical (II)',
+                        probability: 'Frequent (A)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 21,
+                        source: 'Forest Fire',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'PM2.5',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'All base population',
+                        existingControls: 'AQI alerts',
+                        frequencyDuration: 'Dry season',
+                        severity: 'Critical (II)',
+                        probability: 'Occasional (C)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 22,
+                        source: 'Warehouse',
+                        environmentalMedium: 'Indoor Air',
+                        healthThreat: 'Mold, dust',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Logistics workers',
+                        existingControls: 'Dehumidifiers, filters',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Marginal (III)',
+                        probability: 'Occasional (C)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 23,
+                        source: 'Legacy burn pit',
+                        environmentalMedium: 'Soil/Air',
+                        healthThreat: 'Dioxins/PM',
+                        exposureRoute: 'Inhalation, Dermal',
+                        populationAffected: 'Nearby Housing',
+                        existingControls: 'Fence, ash cap',
+                        frequencyDuration: 'Legacy source',
+                        severity: 'Critical (II)',
+                        probability: 'Likely (B)',
+                        risk: 'Low'
+                    },
+                    {
+                        hazardId: 24,
+                        source: 'Gate Area',
+                        environmentalMedium: 'Air',
+                        healthThreat: 'CO, particulates',
+                        exposureRoute: 'Inhalation',
+                        populationAffected: 'Commuters, gate guards',
+                        existingControls: 'Vehicle standards',
+                        frequencyDuration: 'Daily/8 hrs',
+                        severity: 'Marginal (III)',
+                        probability: 'Frequent (A)',
+                        risk: 'Low'
+                    }
+                ];
+                
+                return `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Order</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 12%;">Source</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Environmental Medium</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Health Threat</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Exposure Route</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Population Affected</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Existing Controls</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Frequency/Duration</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Severity</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Probability</th>
+                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${referenceData.map((row, index) => `
+                                <tr style="background: #f8fff8;">
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.source}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.environmentalMedium}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.healthThreat}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.exposureRoute}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.populationAffected}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.existingControls}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.frequencyDuration}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.severity}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.probability}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+            
+            generateStudentCSMTable() {
+                return `
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Order</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 12%;">Source</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Environmental Medium</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Health Threat</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Exposure Route</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Population Affected</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Existing Controls</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Frequency/Duration</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Severity</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Probability</th>
+                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Risk</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${this.hazardRows.map((row, index) => `
+                                <tr style="background: ${index % 2 === 0 ? '#fff5f5' : 'white'};">
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.source || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.severity || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.probability || 'Not Set'}</td>
+                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk || 'Not Set'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
             }
 
             checkCSM() {
