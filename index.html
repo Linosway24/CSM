@@ -3553,9 +3553,9 @@
                     rowsToShow = this.hazardRows;
                     wrapper.classList.add('show-all');
                 } else if (showAll) {
-                    // Show all rows when manually scrolling
+                    // Show all rows when manually scrolling - KEEP the show-all class
                     rowsToShow = this.hazardRows;
-                    wrapper.classList.remove('show-all');
+                    wrapper.classList.add('show-all');
                 } else {
                     // Show sliding window with the calculated number of rows
                     rowsToShow = this.hazardRows.slice(-maxVisibleRows);
@@ -3777,26 +3777,46 @@
             setupScrollListener() {
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 if (wrapper) {
-                    // Simple approach: allow normal scrolling and detect when user wants to see all rows
+                    let isScrolling = false;
+                    let scrollTimeout;
+                    let hasExpanded = false; // Track if we've already expanded
+                    
+                    // Handle wheel events more carefully
                     wrapper.addEventListener('wheel', (e) => {
-                        if (this.hazardRows.length <= this.calculateMaxVisibleRows()) return; // No need for special handling
+                        if (this.hazardRows.length <= this.calculateMaxVisibleRows()) return;
                         
                         // If we're in sliding window mode and user scrolls, show all rows
-                        if (!wrapper.classList.contains('show-all')) {
+                        if (!wrapper.classList.contains('show-all') && !hasExpanded) {
+                            hasExpanded = true;
                             this.renderRows(true);
-                            // Let the browser handle the scroll naturally
                         }
                     });
                     
-                    // Also handle scroll events to detect when user scrolls to edges
+                    // Handle scroll events more carefully to avoid jumping
                     wrapper.addEventListener('scroll', () => {
                         if (this.hazardRows.length <= this.calculateMaxVisibleRows()) return;
                         
-                        const currentScrollTop = wrapper.scrollTop;
-                        const maxScrollTop = wrapper.scrollHeight - wrapper.clientHeight;
+                        // Clear existing timeout
+                        clearTimeout(scrollTimeout);
                         
-                        // If scrolled to top or bottom, show all rows
-                        if (currentScrollTop <= 5 || currentScrollTop >= maxScrollTop - 5) {
+                        // Set a flag to indicate we're scrolling
+                        isScrolling = true;
+                        
+                        // Clear the flag after scrolling stops
+                        scrollTimeout = setTimeout(() => {
+                            isScrolling = false;
+                        }, 150);
+                        
+                        // Don't interfere with scrolling once we're in show-all mode
+                        if (wrapper.classList.contains('show-all')) {
+                            return;
+                        }
+                        
+                        // Only expand to show all rows if user scrolls to very top
+                        const currentScrollTop = wrapper.scrollTop;
+                        
+                        if (currentScrollTop <= 2 && !hasExpanded) {
+                            hasExpanded = true;
                             this.renderRows(true);
                         }
                     });
@@ -3804,16 +3824,17 @@
                     // Add a way to go back to sliding window mode
                     wrapper.addEventListener('dblclick', () => {
                         if (this.hazardRows.length > this.calculateMaxVisibleRows()) {
+                            hasExpanded = false; // Reset the flag
                             this.renderRows(false); // Go back to sliding window
                         }
                     });
                     
-                    // Add click handler to expand view when in sliding mode
-                    wrapper.addEventListener('click', () => {
-                        if (this.hazardRows.length > this.calculateMaxVisibleRows() && !wrapper.classList.contains('show-all')) {
-                            this.renderRows(true); // Show all rows
-                        }
-                    });
+                    // Reset expansion flag when new hazards are added
+                    const originalAddHazardRow = this.addHazardRow.bind(this);
+                    this.addHazardRow = () => {
+                        hasExpanded = false; // Reset when adding new hazards
+                        originalAddHazardRow();
+                    };
                 }
             }
 
@@ -5051,12 +5072,13 @@
                 const modalContent = document.createElement('div');
                 modalContent.style.cssText = `
                     background: white;
-                    padding: 2rem;
+                    padding: 1rem;
                     border-radius: 8px;
                     max-width: 95%;
-                    max-height: 90%;
+                    max-height: 95%;
                     overflow-y: auto;
                     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                    font-size: 14px;
                 `;
                 
                 modalContent.innerHTML = `
@@ -5064,16 +5086,16 @@
                         <h2 style="margin: 0; color: #2c3e50;">CSM Comparison Results</h2>
                         <button id="closeComparison" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Close</button>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1rem 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.5rem 0;">
                         <div>
-                            <h3 style="margin: 0 0 1rem 0; color: #28a745; text-align: center;">Correct CSM Form (Ordered by Risk)</h3>
-                            <div style="max-height: 400px; overflow-y: auto; border: 2px solid #28a745; border-radius: 8px;">
+                            <h3 style="margin: 0 0 0.5rem 0; color: #28a745; text-align: center; font-size: 16px;">Correct CSM Form (Ordered by Risk)</h3>
+                            <div style="max-height: 80vh; overflow-y: auto; border: 2px solid #28a745; border-radius: 8px;">
                                 ${this.generateCorrectCSMTable()}
                             </div>
                         </div>
                         <div>
-                            <h3 style="margin: 0 0 1rem 0; color: #dc3545; text-align: center;">Your CSM Form</h3>
-                            <div style="max-height: 400px; overflow-y: auto; border: 2px solid #dc3545; border-radius: 8px;">
+                            <h3 style="margin: 0 0 0.5rem 0; color: #dc3545; text-align: center; font-size: 16px;">Your CSM Form</h3>
+                            <div style="max-height: 80vh; overflow-y: auto; border: 2px solid #dc3545; border-radius: 8px;">
                                 ${this.generateStudentCSMTable()}
                             </div>
                         </div>
@@ -5192,19 +5214,6 @@
                         severity: 'Critical (II)',
                         probability: 'Seldom (D)',
                         risk: 'Moderate'
-                    },
-                    {
-                        hazardId: 25,
-                        source: 'Municipal Water System',
-                        environmentalMedium: 'Water',
-                        healthThreat: 'Chlorine residual',
-                        exposureRoute: 'Ingestion',
-                        populationAffected: 'All base',
-                        existingControls: 'Online monitors',
-                        frequencyDuration: 'Continuous',
-                        severity: 'Marginal (III)',
-                        probability: 'Unlikely (E)',
-                        risk: 'Low'
                     },
                     {
                         hazardId: 8,
@@ -5427,40 +5436,53 @@
                         severity: 'Marginal (III)',
                         probability: 'Frequent (A)',
                         risk: 'Low'
+                    },
+                    {
+                        hazardId: 25,
+                        source: 'Municipal Water System',
+                        environmentalMedium: 'Water',
+                        healthThreat: 'Chlorine residual',
+                        exposureRoute: 'Ingestion',
+                        populationAffected: 'All base',
+                        existingControls: 'Online monitors',
+                        frequencyDuration: 'Continuous',
+                        severity: 'Marginal (III)',
+                        probability: 'Unlikely (E)',
+                        risk: 'Low'
                     }
                 ];
                 
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
                             <tr style="background: #f8f9fa;">
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Order</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 12%;">Source</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Environmental Medium</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Health Threat</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Exposure Route</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Population Affected</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Existing Controls</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Frequency/Duration</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Severity</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Probability</th>
-                                <th style="padding: 6px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Risk</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Order</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 12%;">Source</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Environmental Medium</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Health Threat</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Exposure Route</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Population Affected</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Existing Controls</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 10%;">Frequency/Duration</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Severity</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Probability</th>
+                                <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Risk</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${referenceData.map((row, index) => `
                                 <tr style="background: #f8fff8;">
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.source}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.environmentalMedium}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.healthThreat}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.exposureRoute}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.populationAffected}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.existingControls}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.frequencyDuration}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.severity}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.probability}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.source}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.environmentalMedium}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.healthThreat}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.exposureRoute}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.populationAffected}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.existingControls}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.frequencyDuration}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.severity}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.probability}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -5470,36 +5492,36 @@
             
             generateStudentCSMTable() {
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                         <thead>
                             <tr style="background: #f8f9fa;">
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Order</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 12%;">Source</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Environmental Medium</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Health Threat</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Exposure Route</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Population Affected</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Existing Controls</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 10%;">Frequency/Duration</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Severity</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Probability</th>
-                                <th style="padding: 6px; border: 1px solid #bd2130; text-align: center; width: 8%;">Risk</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Order</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 12%;">Source</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Environmental Medium</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Health Threat</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Exposure Route</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Population Affected</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Existing Controls</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Frequency/Duration</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Severity</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Probability</th>
+                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Risk</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${this.hazardRows.map((row, index) => `
                                 <tr style="background: ${index % 2 === 0 ? '#fff5f5' : 'white'};">
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.source || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.severity || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center;">${row.probability || 'Not Set'}</td>
-                                    <td style="padding: 4px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.source || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.severity || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.probability || 'Not Set'}</td>
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk || 'Not Set'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
