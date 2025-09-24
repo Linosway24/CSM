@@ -95,16 +95,41 @@
 
         /* CSM Form Styles */
         .csm-form-table-wrapper {
-            max-height: calc(25vh - 100px);
+            max-height: calc(50vh - 100px);
             overflow-y: auto;
             overflow-x: auto;
             border: 1px solid #dee2e6;
             border-radius: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+            cursor: pointer;
+        }
+
+        .csm-form-table-wrapper:hover {
+            border-color: #007bff;
+        }
+
+        .csm-form-table-wrapper::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .csm-form-table-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .csm-form-table-wrapper::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .csm-form-table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         /* Allow more height when there are only 2 rows */
         .csm-form-table-wrapper.show-all {
-            max-height: calc(25vh - 80px);
+            max-height: calc(50vh - 80px);
         }
 
         .csm-form-table {
@@ -3443,6 +3468,24 @@
                 this.setupScrollListener();
             }
 
+            calculateMaxVisibleRows() {
+                const wrapper = document.querySelector('.csm-form-table-wrapper');
+                if (!wrapper) return 2; // fallback
+                
+                // Get the available height for the table content
+                const wrapperHeight = wrapper.clientHeight;
+                const headerHeight = 40; // Approximate header height
+                const rowHeight = 35; // Approximate row height
+                const padding = 20; // Padding and margins
+                
+                // Calculate how many rows can fit
+                const availableHeight = wrapperHeight - headerHeight - padding;
+                const maxRows = Math.floor(availableHeight / rowHeight);
+                
+                // Ensure we show at least 2 rows, but not more than 8
+                return Math.max(2, Math.min(maxRows, 8));
+            }
+
             initEventListeners() {
                 document.getElementById('addHazardRow').addEventListener('click', () => {
                     this.addHazardRow();
@@ -3486,10 +3529,13 @@
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 tbody.innerHTML = '';
 
-                // Show all rows if 2 or fewer, otherwise show sliding window starting after 2nd
+                // Calculate how many rows can fit in the available space
+                const maxVisibleRows = this.calculateMaxVisibleRows();
+                
+                // Show all rows if we have fewer than the max visible, otherwise show sliding window
                 let rowsToShow;
-                if (this.hazardRows.length <= 2) {
-                    // Show all rows for first 2 hazards
+                if (this.hazardRows.length <= maxVisibleRows) {
+                    // Show all rows if we can fit them all
                     rowsToShow = this.hazardRows;
                     wrapper.classList.add('show-all');
                 } else if (showAll) {
@@ -3497,8 +3543,8 @@
                     rowsToShow = this.hazardRows;
                     wrapper.classList.remove('show-all');
                 } else {
-                    // Show sliding window starting after 2nd hazard (show last 2)
-                    rowsToShow = this.hazardRows.slice(-2);
+                    // Show sliding window with the calculated number of rows
+                    rowsToShow = this.hazardRows.slice(-maxVisibleRows);
                     wrapper.classList.remove('show-all');
                 }
                 
@@ -3506,6 +3552,8 @@
                     // Calculate the original index in the full array
                     let index;
                     if (this.hazardRows.length <= 2) {
+                        index = displayIndex;
+                    } else if (showAll) {
                         index = displayIndex;
                     } else {
                         index = this.hazardRows.length - 2 + displayIndex;
@@ -3714,18 +3762,42 @@
             setupScrollListener() {
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 if (wrapper) {
-                    let scrollTimeout;
+                    // Simple approach: allow normal scrolling and detect when user wants to see all rows
+                    wrapper.addEventListener('wheel', (e) => {
+                        if (this.hazardRows.length <= this.calculateMaxVisibleRows()) return; // No need for special handling
+                        
+                        // If we're in sliding window mode and user scrolls, show all rows
+                        if (!wrapper.classList.contains('show-all')) {
+                            this.renderRows(true);
+                            // Let the browser handle the scroll naturally
+                        }
+                    });
+                    
+                    // Also handle scroll events to detect when user scrolls to edges
                     wrapper.addEventListener('scroll', () => {
-                        // Clear existing timeout
-                        clearTimeout(scrollTimeout);
+                        if (this.hazardRows.length <= this.calculateMaxVisibleRows()) return;
                         
-                        // Show all rows when user scrolls
-                        this.renderRows(true);
+                        const currentScrollTop = wrapper.scrollTop;
+                        const maxScrollTop = wrapper.scrollHeight - wrapper.clientHeight;
                         
-                        // Set timeout to return to sliding window after scroll stops
-                        scrollTimeout = setTimeout(() => {
-                            this.renderRows(false);
-                        }, 1000); // Return to sliding window after 1 second of no scrolling
+                        // If scrolled to top or bottom, show all rows
+                        if (currentScrollTop <= 5 || currentScrollTop >= maxScrollTop - 5) {
+                            this.renderRows(true);
+                        }
+                    });
+                    
+                    // Add a way to go back to sliding window mode
+                    wrapper.addEventListener('dblclick', () => {
+                        if (this.hazardRows.length > this.calculateMaxVisibleRows()) {
+                            this.renderRows(false); // Go back to sliding window
+                        }
+                    });
+                    
+                    // Add click handler to expand view when in sliding mode
+                    wrapper.addEventListener('click', () => {
+                        if (this.hazardRows.length > this.calculateMaxVisibleRows() && !wrapper.classList.contains('show-all')) {
+                            this.renderRows(true); // Show all rows
+                        }
                     });
                 }
             }
