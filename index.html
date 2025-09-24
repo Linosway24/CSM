@@ -3579,8 +3579,8 @@
                             <option value="">Select Source</option>
                             <option value="Aircraft fuel tanks" ${row.source === 'Aircraft fuel tanks' ? 'selected' : ''}>Aircraft fuel tanks</option>
                             <option value="Arthropod Vectors" ${row.source === 'Arthropod Vectors' ? 'selected' : ''}>Arthropod Vectors</option>
-                            <option value="Base CATM Range" ${row.source === 'Base CATM Range' ? 'selected' : ''}>Base CATM Range</option>
                             <option value="Battery Storage" ${row.source === 'Battery Storage' ? 'selected' : ''}>Battery Storage</option>
+                            <option value="CATM Range" ${row.source === 'CATM Range' ? 'selected' : ''}>CATM Range</option>
                             <option value="Chemical Lab" ${row.source === 'Chemical Lab' ? 'selected' : ''}>Chemical Lab</option>
                             <option value="Cryogenics Shop" ${row.source === 'Cryogenics Shop' ? 'selected' : ''}>Cryogenics Shop</option>
                             <option value="Field Training Area" ${row.source === 'Field Training Area' ? 'selected' : ''}>Field Training Area</option>
@@ -3757,8 +3757,8 @@
                             <option value="">Select Risk</option>
                             <option value="Extremely High" ${row.risk === 'Extremely High' ? 'selected' : ''}>Extremely High</option>
                             <option value="High" ${row.risk === 'High' ? 'selected' : ''}>High</option>
-                            <option value="Low" ${row.risk === 'Low' ? 'selected' : ''}>Low</option>
                             <option value="Moderate" ${row.risk === 'Moderate' ? 'selected' : ''}>Moderate</option>
+                            <option value="Low" ${row.risk === 'Low' ? 'selected' : ''}>Low</option>
                         </select></td>
                     `;
                     tbody.appendChild(tr);
@@ -4797,8 +4797,9 @@
                     background: rgba(0,0,0,0.8);
                     z-index: 10000;
                     display: flex;
-                    align-items: center;
+                    align-items: flex-start;
                     justify-content: center;
+                    padding-top: 50px;
                 `;
                 
                 const modalContent = document.createElement('div');
@@ -4961,10 +4962,31 @@
                 // Create draggable matrix viewer
                 const matrixViewer = document.createElement('div');
                 matrixViewer.id = 'riskMatrixViewer';
+                
+                // Calculate position above CSM spreadsheet
+                const csmWrapper = document.querySelector('.csm-form-table-wrapper');
+                let topPosition = 50; // fallback
+                let rightPosition = 50; // fallback
+                
+                if (csmWrapper) {
+                    const csmRect = csmWrapper.getBoundingClientRect();
+                    const imageHeight = 400; // Approximate image height
+                    const padding = 5; // 5px padding between image and CSM
+                    
+                    // Position image so its bottom is 5px above the CSM spreadsheet
+                    topPosition = csmRect.top - imageHeight - padding;
+                    rightPosition = 50; // Keep 50px from right edge
+                    
+                    // Ensure it doesn't go above the viewport
+                    if (topPosition < 10) {
+                        topPosition = 10;
+                    }
+                }
+                
                 matrixViewer.style.cssText = `
                     position: fixed;
-                    top: 50px;
-                    right: 50px;
+                    top: ${topPosition}px;
+                    right: ${rightPosition}px;
                     z-index: 10000;
                     cursor: move;
                     user-select: none;
@@ -5374,7 +5396,7 @@
                     },
                     {
                         hazardId: 20,
-                        source: 'Base CATM Range',
+                        source: 'CATM Range',
                         environmentalMedium: 'Soil',
                         healthThreat: 'Lead, noise',
                         exposureRoute: 'Inhalation, Ingestion',
