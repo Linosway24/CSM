@@ -4341,7 +4341,7 @@
                 ];
 
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
                             <tr style="background: #28a745; color: white;">
                                 <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center;">ID</th>
@@ -4709,7 +4709,7 @@
                 ];
 
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
                             <tr style="background: #dc3545; color: white;">
                                 <th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">ID</th>
@@ -4799,7 +4799,7 @@
                     display: flex;
                     align-items: flex-start;
                     justify-content: center;
-                    padding-top: 50px;
+                    padding-top: 120px;
                 `;
                 
                 const modalContent = document.createElement('div');
@@ -4850,7 +4850,7 @@
             
             generateReorderableTable() {
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
                             <tr style="background: #f8f9fa;">
                                 <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 5%;">Order</th>
@@ -4963,24 +4963,29 @@
                 const matrixViewer = document.createElement('div');
                 matrixViewer.id = 'riskMatrixViewer';
                 
-                // Calculate position above CSM spreadsheet
+                // Position matrix so its bottom touches the top of CSM spreadsheet
+                const imageHeight = 400; // Approximate image height
+                const imageWidth = 500; // Approximate image width
+                const padding = 20; // padding from right edge
+                
+                // Find CSM spreadsheet element to position relative to it
                 const csmWrapper = document.querySelector('.csm-form-table-wrapper');
                 let topPosition = 50; // fallback
-                let rightPosition = 50; // fallback
+                let rightPosition = padding;
                 
                 if (csmWrapper) {
                     const csmRect = csmWrapper.getBoundingClientRect();
-                    const imageHeight = 400; // Approximate image height
-                    const padding = 5; // 5px padding between image and CSM
-                    
-                    // Position image so its bottom is 5px above the CSM spreadsheet
-                    topPosition = csmRect.top - imageHeight - padding;
-                    rightPosition = 50; // Keep 50px from right edge
+                    // Position so bottom of matrix is close to top of CSM spreadsheet
+                    topPosition = csmRect.top - imageHeight + 140; // Add 140px to move it down
+                    rightPosition = padding;
                     
                     // Ensure it doesn't go above the viewport
                     if (topPosition < 10) {
                         topPosition = 10;
                     }
+                } else {
+                    // Fallback if CSM element not found
+                    topPosition = window.innerHeight - imageHeight - 150;
                 }
                 
                 matrixViewer.style.cssText = `
@@ -5087,8 +5092,9 @@
                     background: rgba(0,0,0,0.8);
                     z-index: 10000;
                     display: flex;
-                    align-items: center;
+                    align-items: flex-start;
                     justify-content: center;
+                    padding-top: 120px;
                 `;
                 
                 const modalContent = document.createElement('div');
@@ -5096,11 +5102,11 @@
                     background: white;
                     padding: 1rem;
                     border-radius: 8px;
-                    max-width: 95%;
+                    width: 95vw;
                     max-height: 95%;
                     overflow-y: auto;
                     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                    font-size: 14px;
+                    font-size: 12px;
                 `;
                 
                 modalContent.innerHTML = `
@@ -5111,13 +5117,13 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0.5rem 0;">
                         <div>
                             <h3 style="margin: 0 0 0.5rem 0; color: #28a745; text-align: center; font-size: 16px;">Correct CSM Form (Ordered by Risk)</h3>
-                            <div style="max-height: 80vh; overflow-y: auto; border: 2px solid #28a745; border-radius: 8px;">
+                            <div style="max-height: 80vh; overflow-y: auto; overflow-x: auto; border: 2px solid #28a745; border-radius: 8px;">
                                 ${this.generateCorrectCSMTable()}
                             </div>
                         </div>
                         <div>
                             <h3 style="margin: 0 0 0.5rem 0; color: #dc3545; text-align: center; font-size: 16px;">Your CSM Form</h3>
-                            <div style="max-height: 80vh; overflow-y: auto; border: 2px solid #dc3545; border-radius: 8px;">
+                            <div style="max-height: 80vh; overflow-y: auto; overflow-x: auto; border: 2px solid #dc3545; border-radius: 8px;">
                                 ${this.generateStudentCSMTable()}
                             </div>
                         </div>
@@ -5475,7 +5481,7 @@
                 ];
                 
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
                             <tr style="background: #f8f9fa;">
                                 <th style="padding: 8px; border: 1px solid #1e7e34; text-align: center; width: 8%;">Order</th>
@@ -5514,7 +5520,7 @@
             
             generateStudentCSMTable() {
                 return `
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
                             <tr style="background: #f8f9fa;">
                                 <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Order</th>
