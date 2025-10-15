@@ -3282,7 +3282,7 @@
                             probability: "Seldom (D)",
                             risk: "Low"
                         },
-                        15: {
+                        15:                         {
                             source: "Pest Control",
                             environmentalMedium: "Auditory",
                             healthThreat: "Pesticide residues",
@@ -3392,15 +3392,15 @@
                         },
                         24: {
                             source: "Municipal Water Supply",
-                            environmentalMedium: "Water",
-                            healthThreat: "Chlorine residual",
-                            exposureRoute: "Ingestion",
-                            populationAffected: "All base",
-                            existingControls: "Online monitors",
+                            environmentalMedium: "Surface Water",
+                            healthThreat: "Pathogens, nutrients",
+                            exposureRoute: "Ingestion, Dermal",
+                            populationAffected: "Downstream community",
+                            existingControls: "Chlorination, signage",
                             freqDuration: "Continuous",
-                            severity: "Marginal (III)",
-                            probability: "Unlikely (E)",
-                            risk: "Low"
+                            severity: "Critical (II)",
+                            probability: "Seldom (D)",
+                            risk: "Moderate"
                         },
                         25: {
                             source: "'arthropod Vectors",
@@ -3473,9 +3473,376 @@
         class CSMFormManager {
             constructor() {
                 this.hazardRows = [];
+                this.formFields = [
+                    'source',
+                    'environmentalMedium',
+                    'healthThreat',
+                    'exposureRoute',
+                    'populationAffected',
+                    'existingControls',
+                    'frequencyDuration',
+                    'severity',
+                    'probability',
+                    'risk'
+                ];
                 this.initEventListeners();
                 this.addInitialRow();
                 this.setupScrollListener();
+                this.lastComparisonResults = null;
+            }
+
+            normalizeValue(value) {
+                if (value === undefined || value === null) return '';
+                return String(value).trim().replace(/\s+/g, ' ').toLowerCase();
+            }
+
+            formatFieldLabel(field) {
+                const labels = {
+                    source: 'Source',
+                    environmentalMedium: 'Environmental Medium',
+                    healthThreat: 'Health Threat',
+                    exposureRoute: 'Exposure Route',
+                    populationAffected: 'Population Affected',
+                    existingControls: 'Existing Controls',
+                    frequencyDuration: 'Frequency/Duration',
+                    severity: 'Severity',
+                    probability: 'Probability',
+                    risk: 'Risk'
+                };
+                return labels[field] || field;
+            }
+
+            getReferenceCSMData() {
+                if (!this.referenceDataCache) {
+                    this.referenceDataCache = [
+                        {
+                            hazardId: 1,
+                            source: 'Jet engine testing pad',
+                            environmentalMedium: 'Auditory',
+                            healthThreat: 'Noise-Induced Hearing Loss',
+                            exposureRoute: 'Auditory',
+                            populationAffected: 'Flightline Maintainers',
+                            existingControls: 'HPDs, duty limits',
+                            frequencyDuration: 'Daily/8 hrs',
+                            severity: 'Critical (II)',
+                            probability: 'Frequent (A)',
+                            risk: 'Extremely High'
+                        },
+                        {
+                            hazardId: 2,
+                            source: 'Aircraft fuel tanks',
+                            environmentalMedium: 'Soil/Groundwater',
+                            healthThreat: 'Benzene exposure',
+                            exposureRoute: 'Inhalation, Dermal',
+                            populationAffected: 'Firefighters, POL',
+                            existingControls: 'Secondary containment',
+                            frequencyDuration: 'Daily/8 hrs',
+                            severity: 'Marginal (III)',
+                            probability: 'Occasional (C)',
+                            risk: 'High'
+                        },
+                        {
+                            hazardId: 3,
+                            source: 'Chemical Lab',
+                            environmentalMedium: 'Surfaces',
+                            healthThreat: 'Corrosives, toxics',
+                            exposureRoute: 'Dermal, Inhalation',
+                            populationAffected: 'Lab staff',
+                            existingControls: 'SOPs, eyewash',
+                            frequencyDuration: 'Weekly',
+                            severity: 'Critical (II)',
+                            probability: 'Occasional (C)',
+                            risk: 'High'
+                        },
+                        {
+                            hazardId: 4,
+                            source: 'HazMat Storage Area',
+                            environmentalMedium: 'Soil/Surfaces',
+                            healthThreat: 'Drip leaks',
+                            exposureRoute: 'Dermal',
+                            populationAffected: 'CE, HAZWASTE',
+                            existingControls: 'Spill pallets',
+                            frequencyDuration: 'Daily/8 hrs',
+                            severity: 'Marginal (III)',
+                            probability: 'Seldom (D)',
+                            risk: 'High'
+                        },
+                        {
+                            hazardId: 5,
+                            source: 'Paint Shop',
+                            environmentalMedium: 'Air',
+                            healthThreat: 'Toluene, xylene',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Painters',
+                            existingControls: 'LEV, cartridge masks',
+                            frequencyDuration: 'Weekly',
+                            severity: 'Critical (II)',
+                            probability: 'Likely (B)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 6,
+                            source: 'Welding shop',
+                            environmentalMedium: 'Air',
+                            healthThreat: 'Manganese/Cr6+',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Fabricators',
+                            existingControls: 'LEV, PPE, IH surveys',
+                            frequencyDuration: 'Weekly',
+                            severity: 'Critical (II)',
+                            probability: 'Frequent (A)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 7,
+                            source: 'Municipal Water Supply',
+                            environmentalMedium: 'Surface Water',
+                            healthThreat: 'Pathogens, nutrients',
+                            exposureRoute: 'Ingestion, Dermal',
+                            populationAffected: 'Downstream community',
+                            existingControls: 'Chlorination, signage',
+                            frequencyDuration: 'Continuous',
+                            severity: 'Critical (II)',
+                            probability: 'Seldom (D)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 8,
+                            source: 'Battery Storage',
+                            environmentalMedium: 'Air/Surface',
+                            healthThreat: 'Acid mist, Pb dust',
+                            exposureRoute: 'Dermal, Inhalation',
+                            populationAffected: 'Civil Engineers',
+                            existingControls: 'PPE, vent hoods',
+                            frequencyDuration: 'Daily/8 hrs',
+                            severity: 'Marginal (III)',
+                            probability: 'Occasional (C)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 9,
+                            source: 'Cryogenics Shop',
+                            environmentalMedium: 'Indoor Air',
+                            healthThreat: 'Asphyxiation',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Cryo techs',
+                            existingControls: 'Monitors, ventilation',
+                            frequencyDuration: 'Weekly tasks',
+                            severity: 'Catastrophic (I)',
+                            probability: 'Seldom (D)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 10,
+                            source: 'Fuel truck refueling',
+                            environmentalMedium: 'Air',
+                            healthThreat: 'VOC vapor, spills',
+                            exposureRoute: 'Inhalation, Dermal',
+                            populationAffected: 'POL, Drivers',
+                            existingControls: 'SOPs, spill kits',
+                            frequencyDuration: 'Daily/8 hrs',
+                            severity: 'Critical (II)',
+                            probability: 'Likely (B)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 11,
+                            source: 'Satellite comms dish',
+                            environmentalMedium: 'Radiation',
+                            healthThreat: 'RF hazard',
+                            exposureRoute: 'External',
+                            populationAffected: 'Comm technicians',
+                            existingControls: 'Time-distance-shielding',
+                            frequencyDuration: 'Weekly',
+                            severity: 'Marginal (III)',
+                            probability: 'Seldom (D)',
+                            risk: 'Moderate'
+                        },
+                        {
+                            hazardId: 12,
+                            source: 'Pest Control',
+                            environmentalMedium: 'Surfaces',
+                            healthThreat: 'Pesticide residues',
+                            exposureRoute: 'Dermal, Inhalation',
+                            populationAffected: 'Shoppers, workers',
+                            existingControls: 'SOPs, notifications',
+                            frequencyDuration: 'Monthly',
+                            severity: 'Marginal (III)',
+                            probability: 'Seldom (D)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 13,
+                            source: 'Arthropod Vectors',
+                            environmentalMedium: 'Air/Biological',
+                            healthThreat: 'Vector-borne disease',
+                            exposureRoute: 'Insect bites',
+                            populationAffected: 'Outdoor personnel',
+                            existingControls: 'Repellent, Bti spray',
+                            frequencyDuration: 'Summer',
+                            severity: 'Critical (II)',
+                            probability: 'Occasional (C)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 14,
+                            source: 'Gym Sauna',
+                            environmentalMedium: 'Air',
+                            healthThreat: 'Mold spores, heat stress',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Athletes',
+                            existingControls: 'Time limits, cleaning',
+                            frequencyDuration: 'Daily',
+                            severity: 'Negligible (IV)',
+                            probability: 'Frequent (A)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 15,
+                            source: 'Medical X-ray',
+                            environmentalMedium: 'Radiation',
+                            healthThreat: 'Ionizing radiation',
+                            exposureRoute: 'External',
+                            populationAffected: 'Staff, patients',
+                            existingControls: 'Shielding, badges',
+                            frequencyDuration: 'Daily',
+                            severity: 'Critical (II)',
+                            probability: 'Unlikely (E)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 16,
+                            source: 'Mechanical Shop',
+                            environmentalMedium: 'Air/Surfaces',
+                            healthThreat: 'Solvent vapors',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Maintainers',
+                            existingControls: 'LEV, respirators',
+                            frequencyDuration: 'Daily',
+                            severity: 'Marginal (III)',
+                            probability: 'Occasional (C)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 17,
+                            source: 'Historic Landfill',
+                            environmentalMedium: 'Groundwater',
+                            healthThreat: 'Leachate (VOCs, metals)',
+                            exposureRoute: 'Ingestion',
+                            populationAffected: 'Community well users',
+                            existingControls: 'Monitoring wells',
+                            frequencyDuration: 'Dry season',
+                            severity: 'Critical (II)',
+                            probability: 'Seldom (D)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 18,
+                            source: 'Field Training Area',
+                            environmentalMedium: 'Soil/Dust',
+                            healthThreat: 'Valley fever (fungal spores)',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Trainees',
+                            existingControls: 'Watering, timing',
+                            frequencyDuration: 'Dry season',
+                            severity: 'Critical (II)',
+                            probability: 'Seldom (D)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 19,
+                            source: 'Field Water System',
+                            environmentalMedium: 'Surface Water',
+                            healthThreat: 'Propylene glycol',
+                            exposureRoute: 'Ingestion',
+                            populationAffected: 'Aquatic life, public',
+                            existingControls: 'Stormwater BMPs',
+                            frequencyDuration: 'Daily/8 hrs',
+                            severity: 'Marginal (III)',
+                            probability: 'Occasional (C)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 20,
+                            source: 'CATM Range',
+                            environmentalMedium: 'Soil',
+                            healthThreat: 'Lead, noise',
+                            exposureRoute: 'Inhalation, Ingestion',
+                            populationAffected: 'Instructors, trainees',
+                            existingControls: 'PPE, HEPA vacs',
+                            frequencyDuration: 'Daily',
+                            severity: 'Critical (II)',
+                            probability: 'Frequent (A)',
+                            risk: 'Extremely High'
+                        },
+                        {
+                            hazardId: 21,
+                            source: 'Forest Fire',
+                            environmentalMedium: 'Air',
+                            healthThreat: 'PM2.5',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'All base population',
+                            existingControls: 'AQI alerts',
+                            frequencyDuration: 'Annual',
+                            severity: 'Critical (II)',
+                            probability: 'Occasional (C)',
+                            risk: 'High'
+                        },
+                        {
+                            hazardId: 22,
+                            source: 'Warehouse',
+                            environmentalMedium: 'Indoor Air',
+                            healthThreat: 'Mold, dust',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Logistics workers',
+                            existingControls: 'Dehumidifiers, filters',
+                            frequencyDuration: 'Variable',
+                            severity: 'Marginal (III)',
+                            probability: 'Occasional (C)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 23,
+                            source: 'Legacy burn pit',
+                            environmentalMedium: 'Soil/Air',
+                            healthThreat: 'Dioxins/PM',
+                            exposureRoute: 'Inhalation, Dermal',
+                            populationAffected: 'Nearby Housing',
+                            existingControls: 'Fence, ash cap',
+                            frequencyDuration: 'Legacy source',
+                            severity: 'Critical (II)',
+                            probability: 'Likely (B)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 24,
+                            source: 'Gate Area',
+                            environmentalMedium: 'Air',
+                            healthThreat: 'CO, particulates',
+                            exposureRoute: 'Inhalation',
+                            populationAffected: 'Commuters, gate guards',
+                            existingControls: 'Vehicle standards',
+                            frequencyDuration: 'Constant',
+                            severity: 'Marginal (III)',
+                            probability: 'Frequent (A)',
+                            risk: 'Low'
+                        },
+                        {
+                            hazardId: 25,
+                            source: 'Municipal Water System',
+                            environmentalMedium: 'Surface Water',
+                            healthThreat: 'Pathogens, nutrients',
+                            exposureRoute: 'Ingestion, Dermal',
+                            populationAffected: 'Downstream community',
+                            existingControls: 'Chlorination, signage',
+                            frequencyDuration: 'Continuous',
+                            severity: 'Critical (II)',
+                            probability: 'Seldom (D)',
+                            risk: 'Moderate'
+                        }
+                    ];
+                }
+                return this.referenceDataCache.map(item => ({ ...item }));
             }
 
             calculateMaxVisibleRows() {
@@ -3764,6 +4131,10 @@
                     tbody.appendChild(tr);
                 });
 
+                if (this.lastComparisonResults && Array.isArray(this.lastComparisonResults.details)) {
+                    this.applyFormComparison(this.lastComparisonResults);
+                }
+
                 this.addInputEventListeners();
             }
 
@@ -3952,6 +4323,7 @@
                 const field = e.target.dataset.field;
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
+                this.clearFormComparisonHighlights();
                 // Don't re-render the table, just update the data
             }
 
@@ -3960,32 +4332,44 @@
                 const field = e.target.dataset.field;
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
+                this.clearFormComparisonHighlights();
                 // Don't re-render the table, just update the data
             }
 
             populateFromMapData(hazardData) {
-                // Only populate if there are existing rows, don't auto-add new rows
-                if (this.hazardRows.length > 0) {
-                    // Find the first empty row or use the first row
-                    let targetRow = this.hazardRows.find(row => !row.source);
-                    if (!targetRow) {
-                        targetRow = this.hazardRows[0]; // Use first row if all are filled
-                    }
-
-                    // Populate with map data (only if fields are empty)
-                    if (!targetRow.source) {
-                        targetRow.source = hazardData.hazard_type || hazardData.display_name || '';
-                    }
-                    if (!targetRow.severity) {
-                        targetRow.severity = hazardData.severity || '';
-                    }
-                    if (!targetRow.risk) {
-                        targetRow.risk = hazardData.risk || '';
-                    }
-
-                    // Update the specific form fields without re-rendering the entire table
-                    this.updateFormFields(targetRow);
+                if (this.hazardRows.length === 0) {
+                    this.addHazardRow();
                 }
+
+                const normalizedSource = this.normalizeValue(hazardData.display_name || hazardData.hazard_type || hazardData.name || hazardData.Name || '');
+                
+                // Prefer updating the row that already contains this hazard (if any)
+                let targetRow = this.hazardRows.find(row => this.normalizeValue(row.source) === normalizedSource);
+                
+                // Otherwise use the first empty row
+                if (!targetRow) {
+                    targetRow = this.hazardRows.find(row => !row.source);
+                }
+                
+                // If still no row available, do nothing (user can add a new row manually)
+                if (!targetRow) {
+                    return;
+                }
+
+                // Always populate the source so we compare against consistent text
+                targetRow.source = hazardData.display_name || hazardData.hazard_type || hazardData.name || hazardData.Name || '';
+
+                // Populate severity/probability/risk only when provided as meaningful strings
+                if (typeof hazardData.severity === 'string' && hazardData.severity.trim()) {
+                    targetRow.severity = hazardData.severity;
+                }
+                if (typeof hazardData.risk === 'string' && hazardData.risk.trim()) {
+                    targetRow.risk = hazardData.risk;
+                }
+
+                // Update the specific form fields without re-rendering the entire table
+                this.updateFormFields(targetRow);
+                this.clearFormComparisonHighlights();
             }
 
             updateFormFields(targetRow) {
@@ -4085,10 +4469,10 @@
                         healthThreat: 'PM2.5',
                         exposureRoute: 'Inhalation',
                         populationAffected: 'All base population',
-                        existingControls: 'Watering, timing',
-                        frequencyDuration: 'Seasonal',
-                        severity: 'High',
-                        probability: 'Medium',
+                        existingControls: 'AQI alerts',
+                        frequencyDuration: 'Annual',
+                        severity: 'Critical (II)',
+                        probability: 'Occasional (C)',
                         risk: 'High'
                     },
                     {
@@ -4099,10 +4483,10 @@
                         exposureRoute: 'Inhalation, Ingestion',
                         populationAffected: 'Instructors, trainees',
                         existingControls: 'PPE, HEPA vacs',
-                        frequencyDuration: 'Weekly',
-                        severity: 'High',
-                        probability: 'High',
-                        risk: 'High'
+                        frequencyDuration: 'Daily',
+                        severity: 'Critical (II)',
+                        probability: 'Frequent (A)',
+                        risk: 'Extremely High'
                     },
                     {
                         hazardId: 8,
@@ -4315,15 +4699,15 @@
                     {
                         hazardId: 24,
                         source: 'Municipal Water Supply',
-                        environmentalMedium: 'Water',
-                        healthThreat: 'Chlorine residual',
-                        exposureRoute: 'Ingestion',
-                        populationAffected: 'All base',
-                        existingControls: 'Online monitors',
+                        environmentalMedium: 'Surface Water',
+                        healthThreat: 'Pathogens, nutrients',
+                        exposureRoute: 'Ingestion, Dermal',
+                        populationAffected: 'Downstream community',
+                        existingControls: 'Chlorination, signage',
                         frequencyDuration: 'Continuous',
-                        severity: 'Medium',
-                        probability: 'Low',
-                        risk: 'Low'
+                        severity: 'Critical (II)',
+                        probability: 'Seldom (D)',
+                        risk: 'Moderate'
                     },
                     {
                         hazardId: 25,
@@ -4453,10 +4837,10 @@
                         healthThreat: 'PM2.5',
                         exposureRoute: 'Inhalation',
                         populationAffected: 'All base population',
-                        existingControls: 'Watering, timing',
-                        frequencyDuration: 'Seasonal',
-                        severity: 'High',
-                        probability: 'Medium',
+                        existingControls: 'AQI alerts',
+                        frequencyDuration: 'Annual',
+                        severity: 'Critical (II)',
+                        probability: 'Occasional (C)',
                         risk: 'High'
                     },
                     {
@@ -4467,10 +4851,10 @@
                         exposureRoute: 'Inhalation, Ingestion',
                         populationAffected: 'Instructors, trainees',
                         existingControls: 'PPE, HEPA vacs',
-                        frequencyDuration: 'Weekly',
-                        severity: 'High',
-                        probability: 'High',
-                        risk: 'High'
+                        frequencyDuration: 'Daily',
+                        severity: 'Critical (II)',
+                        probability: 'Frequent (A)',
+                        risk: 'Extremely High'
                     },
                     {
                         hazardId: 8,
@@ -4683,15 +5067,15 @@
                     {
                         hazardId: 24,
                         source: 'Municipal Water Supply',
-                        environmentalMedium: 'Water',
-                        healthThreat: 'Chlorine residual',
-                        exposureRoute: 'Ingestion',
-                        populationAffected: 'All base',
-                        existingControls: 'Online monitors',
+                        environmentalMedium: 'Surface Water',
+                        healthThreat: 'Pathogens, nutrients',
+                        exposureRoute: 'Ingestion, Dermal',
+                        populationAffected: 'Downstream community',
+                        existingControls: 'Chlorination, signage',
                         frequencyDuration: 'Continuous',
-                        severity: 'Medium',
-                        probability: 'Low',
-                        risk: 'Low'
+                        severity: 'Critical (II)',
+                        probability: 'Seldom (D)',
+                        risk: 'Moderate'
                     },
                     {
                         hazardId: 25,
@@ -4760,11 +5144,26 @@
                                         ${fields.map(field => {
                                             const studentValue = studentRow[field] || '';
                                             const referenceValue = referenceRow[field] || '';
-                                            const isCorrect = studentValue.toLowerCase() === referenceValue.toLowerCase();
-                                            const backgroundColor = isCorrect ? '#d4edda' : '#f8d7da';
-                                            const textColor = isCorrect ? '#155724' : '#721c24';
+                                            const studentNormalized = (studentValue || '').toLowerCase();
+                                            const referenceNormalized = (referenceValue || '').toLowerCase();
+                                            const isCorrect = studentNormalized && studentNormalized === referenceNormalized;
+                                            const backgroundColor = isCorrect ? '#d4edda' : '#fbe9eb';
                                             
-                                            return `<td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: ${textColor}; font-weight: ${field === 'risk' ? 'bold' : 'normal'};">${studentValue || 'Not filled'}</td>`;
+                                            if (isCorrect) {
+                                                return `<td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: #155724; font-weight: ${field === 'risk' ? 'bold' : 'normal'};">${studentValue || 'Not filled'}</td>`;
+                                            }
+                                            
+                                            const enteredDisplay = studentValue && studentValue.trim() ? studentValue : 'Not filled';
+                                            const correctDisplay = referenceValue && referenceValue.trim() ? referenceValue : 'N/A';
+                                            
+                                            return `
+                                                <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; font-weight: ${field === 'risk' ? 'bold' : 'normal'};">
+                                                    <div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">
+                                                        <span style="color: #721c24; font-weight: 600;">Entered: ${enteredDisplay}</span>
+                                                        <span style="color: #155724; font-weight: 600;">Correct: ${correctDisplay}</span>
+                                                    </div>
+                                                </td>
+                                            `;
                                         }).join('')}
                                     </tr>
                                 `;
@@ -4777,6 +5176,7 @@
             clearForm() {
                 this.hazardRows = [];
                 this.addInitialRow();
+                this.clearFormComparisonHighlights();
             }
 
             showRiskLevelOrder() {
@@ -5077,7 +5477,10 @@
                 }
             }
 
-            showSideBySideComparison() {
+            showSideBySideComparison(results = this.lastComparisonResults) {
+                if (!results) {
+                    results = this.compareWithReference(this.getReferenceCSMData());
+                }
                 // Hide risk matrix if it's open
                 this.hideRiskMatrix();
                 
@@ -5124,7 +5527,7 @@
                         <div>
                             <h3 style="margin: 0 0 0.5rem 0; color: #dc3545; text-align: center; font-size: 16px;">Your CSM Form</h3>
                             <div style="max-height: 80vh; overflow-y: auto; overflow-x: auto; border: 2px solid #dc3545; border-radius: 8px;">
-                                ${this.generateStudentCSMTable()}
+                                ${this.generateStudentCSMTable(results)}
                             </div>
                         </div>
                     </div>
@@ -5238,7 +5641,7 @@
                         exposureRoute: 'Ingestion, Dermal',
                         populationAffected: 'Downstream community',
                         existingControls: 'Chlorination, signage',
-                        frequencyDuration: 'Daily/8 hrs',
+                        frequencyDuration: 'Continuous',
                         severity: 'Critical (II)',
                         probability: 'Seldom (D)',
                         risk: 'Moderate'
@@ -5264,7 +5667,7 @@
                         exposureRoute: 'Inhalation',
                         populationAffected: 'Cryo techs',
                         existingControls: 'Monitors, ventilation',
-                        frequencyDuration: 'Weekly',
+                        frequencyDuration: 'Weekly tasks',
                         severity: 'Catastrophic (I)',
                         probability: 'Seldom (D)',
                         risk: 'Moderate'
@@ -5408,10 +5811,10 @@
                         exposureRoute: 'Inhalation, Ingestion',
                         populationAffected: 'Instructors, trainees',
                         existingControls: 'PPE, HEPA vacs',
-                        frequencyDuration: 'Weekly',
+                        frequencyDuration: 'Daily',
                         severity: 'Critical (II)',
                         probability: 'Frequent (A)',
-                        risk: 'Low'
+                        risk: 'Extremely High'
                     },
                     {
                         hazardId: 21,
@@ -5421,10 +5824,10 @@
                         exposureRoute: 'Inhalation',
                         populationAffected: 'All base population',
                         existingControls: 'AQI alerts',
-                        frequencyDuration: 'Dry season',
+                        frequencyDuration: 'Annual',
                         severity: 'Critical (II)',
                         probability: 'Occasional (C)',
-                        risk: 'Low'
+                        risk: 'High'
                     },
                     {
                         hazardId: 22,
@@ -5434,7 +5837,7 @@
                         exposureRoute: 'Inhalation',
                         populationAffected: 'Logistics workers',
                         existingControls: 'Dehumidifiers, filters',
-                        frequencyDuration: 'Daily/8 hrs',
+                        frequencyDuration: 'Variable',
                         severity: 'Marginal (III)',
                         probability: 'Occasional (C)',
                         risk: 'Low'
@@ -5468,15 +5871,15 @@
                     {
                         hazardId: 25,
                         source: 'Municipal Water System',
-                        environmentalMedium: 'Water',
-                        healthThreat: 'Chlorine residual',
-                        exposureRoute: 'Ingestion',
-                        populationAffected: 'All base',
-                        existingControls: 'Online monitors',
+                        environmentalMedium: 'Surface Water',
+                        healthThreat: 'Pathogens, nutrients',
+                        exposureRoute: 'Ingestion, Dermal',
+                        populationAffected: 'Downstream community',
+                        existingControls: 'Chlorination, signage',
                         frequencyDuration: 'Continuous',
-                        severity: 'Marginal (III)',
-                        probability: 'Unlikely (E)',
-                        risk: 'Low'
+                        severity: 'Critical (II)',
+                        probability: 'Seldom (D)',
+                        risk: 'Moderate'
                     }
                 ];
                 
@@ -5518,40 +5921,89 @@
                 `;
             }
             
-            generateStudentCSMTable() {
+            generateStudentCSMTable(results = null) {
+                if (!results && this.lastComparisonResults) {
+                    results = this.lastComparisonResults;
+                }
+
+                const detailMap = new Map();
+                if (results && Array.isArray(results.details)) {
+                    results.details.forEach(detail => {
+                        const rowIndex = typeof detail.row === 'number' ? detail.row - 1 : null;
+                        if (rowIndex === null || rowIndex < 0) return;
+                        const fieldMap = new Map();
+                        if (Array.isArray(detail.fieldResults)) {
+                            detail.fieldResults.forEach(fieldResult => {
+                                fieldMap.set(fieldResult.field, fieldResult);
+                            });
+                        }
+                        detailMap.set(rowIndex, {
+                            status: detail.status,
+                            message: detail.message,
+                            fields: fieldMap
+                        });
+                    });
+                }
+
                 return `
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
                             <tr style="background: #f8f9fa;">
                                 <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Order</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 12%;">Source</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Environmental Medium</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Health Threat</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Exposure Route</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Population Affected</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Existing Controls</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 10%;">Frequency/Duration</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Severity</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Probability</th>
-                                <th style="padding: 8px; border: 1px solid #bd2130; text-align: center; width: 8%;">Risk</th>
+                                ${this.formFields.map(field => `<th style="padding: 8px; border: 1px solid #bd2130; text-align: center;">${this.formatFieldLabel(field)}</th>`).join('')}
                             </tr>
                         </thead>
                         <tbody>
-                            ${this.hazardRows.map((row, index) => `
-                                <tr style="background: ${index % 2 === 0 ? '#fff5f5' : 'white'};">
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.source || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.environmentalMedium || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.healthThreat || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.exposureRoute || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.populationAffected || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.existingControls || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.frequencyDuration || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.severity || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center;">${row.probability || 'Not Set'}</td>
-                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${row.risk || 'Not Set'}</td>
-                                </tr>
-                            `).join('')}
+                            ${this.hazardRows.map((row, index) => {
+                                const detail = detailMap.get(index);
+                                return `
+                                    <tr style="background: ${index % 2 === 0 ? '#fff5f5' : 'white'};">
+                                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                        ${this.formFields.map(field => {
+                                            const value = row[field] || '';
+                                            if (!detail) {
+                                                return `<td style=\"padding: 6px; border: 1px solid #dee2e6; text-align: center;\">${value || 'Not Set'}</td>`;
+                                            }
+
+                                            const fieldResult = detail.fields.get(field);
+                                            if (fieldResult) {
+                                                if (fieldResult.status === 'correct') {
+                                                    return `<td style=\"padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #d4edda; color: #155724; font-weight: ${field === 'risk' ? 'bold' : 'normal'};\">${value || 'Not Set'}</td>`;
+                                                }
+                                                const entered = fieldResult.student && fieldResult.student.trim() ? fieldResult.student : 'Not Set';
+                                                const correct = fieldResult.reference && fieldResult.reference.trim() ? fieldResult.reference : 'N/A';
+                                                return `
+                                                    <td style=\"padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fbe9eb; font-weight: ${field === 'risk' ? 'bold' : 'normal'};\">
+                                                        <div style=\"display: flex; flex-direction: column; gap: 4px; align-items: center;\">
+                                                            <span style=\"color: #721c24; font-weight: 600;\">Entered: ${entered}</span>
+                                                            <span style=\"color: #155724; font-weight: 600;\">Correct: ${correct}</span>
+                                                        </div>
+                                                    </td>
+                                                `;
+                                            }
+
+                                            const enteredDisplay = value && value.trim() ? value : 'Not Set';
+
+                                            if (detail.status === 'correct') {
+                                                return `<td style=\"padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #d4edda; color: #155724; font-weight: ${field === 'risk' ? 'bold' : 'normal'};\">${enteredDisplay}</td>`;
+                                            }
+
+                                            const correctDisplay = detail.status === 'missing'
+                                                ? 'Value Required'
+                                                : 'Reference Not Matched';
+
+                                            return `
+                                                <td style=\"padding: 6px; border: 1px solid #dee2e6; text-align: center; background: #fbe9eb; font-weight: ${field === 'risk' ? 'bold' : 'normal'};\">
+                                                    <div style=\"display: flex; flex-direction: column; gap: 4px; align-items: center;\">
+                                                        <span style=\"color: #721c24; font-weight: 600;\">Entered: ${enteredDisplay}</span>
+                                                        <span style=\"color: #155724; font-weight: 600;\">Correct: ${correctDisplay}</span>
+                                                    </div>
+                                                </td>
+                                            `;
+                                        }).join('')}
+                                    </tr>
+                                `;
+                            }).join('')}
                         </tbody>
                     </table>
                 `;
@@ -5559,50 +6011,87 @@
 
             checkCSM() {
                 // Reference CSM data (correct answers)
-                const referenceData = [
-                    {
-                        hazardId: 1,
-                        source: 'Engine Testing Pad',
-                        environmentalMedium: 'Air',
-                        healthThreat: 'Respiratory',
-                        exposureRoute: 'Inhalation',
-                        populationAffected: 'Workers',
-                        existingControls: 'PPE',
-                        frequencyDuration: 'Daily',
-                        severity: 'High',
-                        probability: 'High',
-                        risk: 'High'
-                    },
-                    {
-                        hazardId: 2,
-                        source: 'Aircraft Fuel Tanks',
-                        environmentalMedium: 'Soil',
-                        healthThreat: 'Chemical',
-                        exposureRoute: 'Dermal',
-                        populationAffected: 'Workers',
-                        existingControls: 'Containment',
-                        frequencyDuration: 'Continuous',
-                        severity: 'High',
-                        probability: 'Medium',
-                        risk: 'High'
-                    },
-                    {
-                        hazardId: 3,
-                        source: 'Legacy Burn Pit',
-                        environmentalMedium: 'Soil/Air',
-                        healthThreat: 'Dioxins/PM',
-                        exposureRoute: 'Inhalation, Dermal',
-                        populationAffected: 'Nearby Housing',
-                        existingControls: 'Fence, ash cap',
-                        frequencyDuration: 'Seasonal wind',
-                        severity: 'Critical (II)',
-                        probability: 'Likely (B)',
-                        risk: 'High'
-                    }
-                ];
+                const referenceData = this.getReferenceCSMData();
 
                 const results = this.compareWithReference(referenceData);
+                this.applyFormComparison(results);
                 this.displayCheckResults(results);
+            }
+
+            clearFormComparisonHighlights() {
+                this.lastComparisonResults = null;
+                this.formFields.forEach(field => {
+                    this.hazardRows.forEach((_, index) => {
+                        const element = document.querySelector(`[data-field="${field}"][data-index="${index}"]`);
+                        if (element) {
+                            element.style.background = '';
+                            element.style.borderColor = '';
+                            element.removeAttribute('data-correct-value');
+                            element.removeAttribute('data-entered-value');
+                            element.removeAttribute('title');
+                        }
+                    });
+                });
+            }
+
+            applyFormComparison(results) {
+                this.clearFormComparisonHighlights();
+                this.lastComparisonResults = results || null;
+                if (!results || !Array.isArray(results.details)) {
+                    return;
+                }
+
+                results.details.forEach(detail => {
+                    const rowIndex = typeof detail.row === 'number' ? detail.row - 1 : null;
+                    if (rowIndex === null || rowIndex < 0) return;
+
+                    const fieldStatus = {};
+                    if (Array.isArray(detail.fieldResults)) {
+                        detail.fieldResults.forEach(result => {
+                            fieldStatus[result.field] = result;
+                        });
+                    }
+
+                    this.formFields.forEach(field => {
+                        const element = document.querySelector(`[data-field="${field}"][data-index="${rowIndex}"]`);
+                        if (!element) return;
+
+                        const status = fieldStatus[field];
+
+                        if (!status) {
+                            if (detail.status === 'correct') {
+                                element.style.background = '#d4edda';
+                                element.style.borderColor = '#28a745';
+                                element.title = 'Correct';
+                            } else if (detail.status === 'missing') {
+                                element.style.background = '#f8d7da';
+                                element.style.borderColor = '#dc3545';
+                                element.title = 'Missing entry';
+                            } else if (detail.status === 'incorrect' && field === 'source') {
+                                element.style.background = '#f8d7da';
+                                element.style.borderColor = '#dc3545';
+                                element.title = detail.message || 'Incorrect entry';
+                            } else if (detail.status === 'incorrect') {
+                                element.style.background = '#f8d7da';
+                                element.style.borderColor = '#dc3545';
+                                element.title = 'Incorrect entry';
+                            }
+                            return;
+                        }
+
+                        if (status.status === 'correct') {
+                            element.style.background = '#d4edda';
+                            element.style.borderColor = '#28a745';
+                            element.title = 'Correct';
+                        } else {
+                            element.style.background = '#f8d7da';
+                            element.style.borderColor = '#dc3545';
+                            const entered = status.student && status.student.trim() ? status.student : 'Not set';
+                            const correct = status.reference && status.reference.trim() ? status.reference : 'N/A';
+                            element.title = `Entered: ${entered}\nCorrect: ${correct}`;
+                        }
+                    });
+                });
             }
 
             compareWithReference(referenceData) {
@@ -5614,9 +6103,26 @@
                     details: []
                 };
 
-                // Compare each student row with reference data
+                const referenceIndex = new Map();
+                referenceData.forEach(ref => {
+                    const key = this.normalizeValue(ref.source);
+                    if (!referenceIndex.has(key)) {
+                        referenceIndex.set(key, []);
+                    }
+                    referenceIndex.get(key).push(ref);
+                });
+
+                const fields = [
+                    'source',
+                    'environmentalMedium', 'healthThreat', 'exposureRoute',
+                    'populationAffected', 'existingControls', 'frequencyDuration',
+                    'severity', 'probability', 'risk'
+                ];
+                const matchingFields = fields.filter(field => field !== 'risk');
+
                 this.hazardRows.forEach((studentRow, index) => {
-                    if (!studentRow.source || studentRow.source === '') {
+                    const normalizedSource = this.normalizeValue(studentRow.source);
+                    if (!normalizedSource) {
                         results.missing++;
                         results.details.push({
                             row: index + 1,
@@ -5626,11 +6132,14 @@
                         return;
                     }
 
-                    // Find matching reference data by source
-                    const referenceRow = referenceData.find(ref => 
-                        ref.source.toLowerCase() === studentRow.source.toLowerCase()
-                    );
-
+                    const candidates = referenceIndex.get(normalizedSource) || [];
+                    let referenceRow = null;
+                    if (candidates.length === 1) {
+                        referenceRow = candidates[0];
+                    } else if (candidates.length > 1) {
+                        referenceRow = this.findBestReferenceMatch(studentRow, candidates, matchingFields);
+                    }
+                    
                     if (!referenceRow) {
                         results.incorrect++;
                         results.details.push({
@@ -5641,22 +6150,18 @@
                         return;
                     }
 
-                    // Compare each field
-                    const fields = [
-                        'environmentalMedium', 'healthThreat', 'exposureRoute',
-                        'populationAffected', 'existingControls', 'frequencyDuration',
-                        'severity', 'probability', 'risk'
-                    ];
-
                     let rowCorrect = 0;
-                    let rowTotal = fields.length;
+                    const rowTotal = fields.length;
                     const fieldResults = [];
 
                     fields.forEach(field => {
                         const studentValue = studentRow[field] || '';
                         const referenceValue = referenceRow[field] || '';
-                        
-                        if (studentValue.toLowerCase() === referenceValue.toLowerCase()) {
+                        const studentNormalized = this.normalizeValue(studentValue);
+                        const referenceNormalized = this.normalizeValue(referenceValue);
+                        const isCorrect = studentNormalized !== '' && studentNormalized === referenceNormalized;
+
+                        if (isCorrect) {
                             rowCorrect++;
                             fieldResults.push({ field, status: 'correct', value: studentValue });
                         } else {
@@ -5692,6 +6197,34 @@
                 });
 
                 return results;
+            }
+
+            findBestReferenceMatch(studentRow, candidates, fields) {
+                let best = candidates[0];
+                let bestScore = this.calculateMatchScore(studentRow, best, fields);
+
+                for (let i = 1; i < candidates.length; i++) {
+                    const candidate = candidates[i];
+                    const candidateScore = this.calculateMatchScore(studentRow, candidate, fields);
+                    if (candidateScore > bestScore) {
+                        best = candidate;
+                        bestScore = candidateScore;
+                    }
+                }
+
+                return best;
+            }
+
+            calculateMatchScore(studentRow, referenceRow, fields) {
+                let score = 0;
+                fields.forEach(field => {
+                    const studentNormalized = this.normalizeValue(studentRow[field] || '');
+                    const referenceNormalized = this.normalizeValue(referenceRow[field] || '');
+                    if (studentNormalized !== '' && studentNormalized === referenceNormalized) {
+                        score++;
+                    }
+                });
+                return score;
             }
 
             displayCheckResults(results) {
