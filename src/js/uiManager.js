@@ -1,4 +1,7 @@
-// UI Manager - Handles user interface interactions and display
+import * as Cesium from 'cesium';
+import { HazardSchema } from '../core/schema.js';
+import { colorFor } from '../core/colors.js';
+
 export class UIManager {
     constructor(viewer, hazardManager, filterManager) {
         this.viewer = viewer;
@@ -63,14 +66,20 @@ export class UIManager {
         });
     }
 
-    // Handle hazard click
+    // Handle hazard click using unified schema
     handleHazardClick(entity) {
         if (entity.properties) {
             const properties = entity.properties;
-            const hazardType = properties.hazardType?.getValue() || 'Unknown';
-            const location = properties.location?.getValue() || 'Unknown location';
-            const severity = properties.severity?.getValue() || 'Unknown';
-            const medium = properties.medium?.getValue() || 'Unknown';
+
+            const rawType = properties[HazardSchema.type];
+            const rawLocation = properties[HazardSchema.location];
+            const rawSeverity = properties[HazardSchema.severity];
+            const rawMedium = properties[HazardSchema.medium];
+
+            const hazardType = (rawType?.getValue ? rawType.getValue() : rawType) || 'Unknown';
+            const location = (rawLocation?.getValue ? rawLocation.getValue() : rawLocation) || 'Unknown location';
+            const severity = (rawSeverity?.getValue ? rawSeverity.getValue() : rawSeverity) || 'Unknown';
+            const medium = (rawMedium?.getValue ? rawMedium.getValue() : rawMedium) || 'Unknown';
 
             this.showInfoPanel({
                 type: hazardType,
@@ -84,12 +93,16 @@ export class UIManager {
         }
     }
 
-    // Handle hazard hover
+    // Handle hazard hover using unified schema
     handleHazardHover(entity, position) {
         if (entity.properties && entity !== this.currentHoveredEntity) {
             const properties = entity.properties;
-            const hazardType = properties.hazardType?.getValue() || 'Unknown';
-            const severity = properties.severity?.getValue() || 'Unknown';
+
+            const rawType = properties[HazardSchema.type];
+            const rawSeverity = properties[HazardSchema.severity];
+
+            const hazardType = (rawType?.getValue ? rawType.getValue() : rawType) || 'Unknown';
+            const severity = (rawSeverity?.getValue ? rawSeverity.getValue() : rawSeverity) || 'Unknown';
 
             this.showInfoBubble({
                 type: hazardType,
@@ -158,12 +171,12 @@ export class UIManager {
         }
     }
 
-    // Clear hazard highlighting
+    // Clear hazard highlighting using unified schema
     clearHazardHighlight() {
         const entities = this.hazardManager.getHazardEntities();
         entities.forEach(({ entity }) => {
             if (entity.polygon) {
-                const severity = entity.properties.severity?.getValue() || 1;
+                const severity = entity.properties[HazardSchema.severity]?.getValue() || 1;
                 entity.polygon.outlineColor = this.getSeverityColor(severity);
                 entity.polygon.outlineWidth = this.getSeverityOutlineWidth(severity);
             }
@@ -187,7 +200,7 @@ export class UIManager {
         return Math.min(2 + severity, 6);
     }
 
-    // Update legend
+    // Update legend using centralized colors
     updateLegend() {
         const legendElement = document.getElementById('legend');
         if (!legendElement) return;
@@ -203,7 +216,7 @@ export class UIManager {
         legendElement.innerHTML = legendHTML;
     }
 
-    // Get hazard type color for legend
+    // Get hazard type color for legend using centralized colors
     getHazardTypeColor(hazardType) {
         const colors = {
             chemical: '#FFD700',

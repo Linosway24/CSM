@@ -1,4 +1,5 @@
 // Map Manager - Handles 3D map operations and navigation
+import * as Cesium from 'cesium';
 export class MapManager {
     constructor(viewer) {
         this.viewer = viewer;

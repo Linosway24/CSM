@@ -57,6 +57,10 @@ module.exports = {
         {
           from: 'src/assets',
           to: 'assets'
+        },
+        {
+          from: 'public/config.json',
+          to: 'config.json'
         }
       ]
     }),
@@ -67,7 +71,7 @@ module.exports = {
   ],
   resolve: {
     alias: {
-      cesium: path.resolve(__dirname, 'node_modules/cesium/Source')
+      '@zip.js/zip.js/lib/zip-no-worker.js': path.resolve(__dirname, 'node_modules/@zip.js/zip.js/index.js')
     }
   },
   devServer: {

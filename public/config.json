@@ -1,0 +1,5 @@
+{
+  "cesiumToken": "PUT-YOUR-CESIUM-ION-TOKEN-HERE",
+  "dataFile": "./data/HillAFBVector.geojson",
+  "offlineFallback": true
+}

@@ -1,4 +1,5 @@
-// Filter Manager - Handles hazard filtering by type, medium, and severity
+import { HazardSchema } from '../core/schema.js';
+
 export class FilterManager {
     constructor(hazardManager) {
         this.hazardManager = hazardManager;
@@ -50,16 +51,21 @@ export class FilterManager {
         this.applyFilters();
     }
 
-    // Apply all active filters
+    // Apply all active filters using unified schema
     applyFilters() {
         const entities = this.hazardManager.getHazardEntities();
         this.filteredEntities = [];
 
         entities.forEach(({ entity, pinEntity }) => {
-            const properties = entity.properties;
-            const hazardType = properties.hazardType?.getValue()?.toLowerCase();
-            const medium = properties.medium?.getValue()?.toLowerCase();
-            const severity = properties.severity?.getValue()?.toString();
+            const properties = entity.properties || {};
+
+            const rawType = properties[HazardSchema.type];
+            const rawMedium = properties[HazardSchema.medium];
+            const rawSeverity = properties[HazardSchema.severity];
+
+            const hazardType = (rawType?.getValue ? rawType.getValue() : rawType)?.toString?.().toLowerCase?.();
+            const medium = (rawMedium?.getValue ? rawMedium.getValue() : rawMedium)?.toString?.().toLowerCase?.();
+            const severity = (rawSeverity?.getValue ? rawSeverity.getValue() : rawSeverity)?.toString?.();
 
             const typeMatch = this.activeFilters.hazardTypes.has(hazardType);
             const mediumMatch = this.activeFilters.environmentalMediums.has(medium);
@@ -126,12 +132,13 @@ export class FilterManager {
         return this.activeFilters;
     }
 
-    // Check if entity matches current filters
+    // Check if entity matches current filters using unified schema
     entityMatchesFilters(entity) {
         const properties = entity.properties;
-        const hazardType = properties.hazardType?.getValue()?.toLowerCase();
-        const medium = properties.medium?.getValue()?.toLowerCase();
-        const severity = properties.severity?.getValue()?.toString();
+        
+        const hazardType = properties[HazardSchema.type]?.getValue()?.toLowerCase();
+        const medium = properties[HazardSchema.medium]?.getValue()?.toLowerCase();
+        const severity = properties[HazardSchema.severity]?.getValue()?.toString();
 
         const typeMatch = this.activeFilters.hazardTypes.has(hazardType);
         const mediumMatch = this.activeFilters.environmentalMediums.has(medium);

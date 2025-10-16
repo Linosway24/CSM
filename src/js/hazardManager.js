@@ -1,10 +1,15 @@
-// Hazard Manager - Handles hazard data loading, display, and interaction
+import * as Cesium from 'cesium';
+import { normalizeFeature } from '../core/schema.js';
+import { colorFor } from '../core/colors.js';
+import { svgDot } from '../core/icons.js';
+
 export class HazardManager {
     constructor(viewer) {
         this.viewer = viewer;
         this.hazardData = [];
         this.hazardEntities = [];
         this.selectedHazard = null;
+        this.isWebMercator = false;
     }
 
     // Load hazard data from GeoJSON file
@@ -16,6 +21,7 @@ export class HazardManager {
             }
             
             const geojson = await response.json();
+            this.isWebMercator = this.detectWebMercatorCRS(geojson);
             this.processHazardData(geojson);
             console.log(`Loaded ${this.hazardData.length} hazard features`);
         } catch (error) {
@@ -27,32 +33,44 @@ export class HazardManager {
     // Process GeoJSON data and create hazard entities
     processHazardData(geojson) {
         this.hazardData = geojson.features || [];
-        
-        this.hazardData.forEach((feature, index) => {
-            if (feature.geometry && feature.geometry.type === 'Polygon') {
-                this.createHazardEntity(feature, index);
+
+        let entityIndex = 0;
+        this.hazardData.forEach((feature) => {
+            const geometry = feature.geometry;
+            if (!geometry) return;
+
+            if (geometry.type === 'Polygon') {
+                this.createHazardEntity(feature, entityIndex++);
+            } else if (geometry.type === 'MultiPolygon') {
+                // Create an entity for each polygon in the multipolygon
+                const polygons = geometry.coordinates || [];
+                polygons.forEach((polygonCoords) => {
+                    const single = { ...feature, geometry: { type: 'Polygon', coordinates: polygonCoords } };
+                    this.createHazardEntity(single, entityIndex++);
+                });
             }
         });
     }
 
     // Create Cesium entity for hazard polygon
     createHazardEntity(feature, index) {
-        const properties = feature.properties || {};
-        
-        // Extract hazard properties
-        const hazardType = properties.hazardType || 'unknown';
-        const severity = parseInt(properties.severity) || 1;
-        const medium = properties.environmentalMedium || 'unknown';
-        const location = properties.locationDescription || 'Unknown location';
+        const normalizedFeature = normalizeFeature(feature);
+        const properties = normalizedFeature.properties;
 
-        // Create polygon entity
+        const hazardType = properties.hazardType;
+        const severity = properties.severity;
+        const medium = properties.environmentalMedium;
+        const location = properties.location;
+
+        // Use the outer ring only for now (holes can be added later)
+        const outerRing = feature.geometry.coordinates?.[0] || [];
+        const degreesFlat = this.ringToDegreesArray(outerRing, this.isWebMercator);
+
         const entity = this.viewer.entities.add({
             id: `hazard-${index}`,
             name: `${hazardType} Hazard`,
             polygon: {
-                hierarchy: Cesium.Cartesian3.fromDegreesArray(
-                    feature.geometry.coordinates[0].flat()
-                ),
+                hierarchy: Cesium.Cartesian3.fromDegreesArray(degreesFlat),
                 material: this.getHazardMaterial(hazardType, severity),
                 outline: true,
                 outlineColor: this.getSeverityColor(severity),
@@ -65,12 +83,11 @@ export class HazardManager {
                 severity,
                 medium,
                 location,
-                originalFeature: feature
+                originalFeature: normalizedFeature
             }
         });
 
-        // Create pin marker at polygon centroid
-        const centroid = this.calculatePolygonCentroid(feature.geometry.coordinates[0]);
+        const centroid = this.calculateCentroidFromRing(outerRing, this.isWebMercator);
         const pinEntity = this.viewer.entities.add({
             id: `hazard-pin-${index}`,
             name: `${hazardType} Hazard Pin`,
@@ -85,45 +102,61 @@ export class HazardManager {
                 severity,
                 medium,
                 location,
-                originalFeature: feature,
+                originalFeature: normalizedFeature,
                 parentEntity: entity
             }
         });
 
-        this.hazardEntities.push({ entity, pinEntity, feature });
+        this.hazardEntities.push({ entity, pinEntity, feature: normalizedFeature });
     }
 
-    // Calculate polygon centroid
-    calculatePolygonCentroid(coordinates) {
-        let x = 0, y = 0;
-        const points = coordinates.length;
-        
-        coordinates.forEach(coord => {
-            x += coord[0];
-            y += coord[1];
-        });
-        
-        return {
-            longitude: x / points,
-            latitude: y / points
-        };
+    // Convert a ring [[x,y],...] to flat degrees array [lon,lat,...]
+    ringToDegreesArray(ring, isWebMercator) {
+        const result = [];
+        for (let i = 0; i < ring.length; i++) {
+            const pt = ring[i];
+            if (!pt || pt.length < 2) continue;
+            const lonlat = isWebMercator ? this.webMercatorToLonLat(pt[0], pt[1]) : { lon: pt[0], lat: pt[1] };
+            result.push(lonlat.lon, lonlat.lat);
+        }
+        return result;
     }
 
-    // Get material color based on hazard type and severity
+    // Calculate centroid from a ring in either 3857 or 4326
+    calculateCentroidFromRing(ring, isWebMercator) {
+        let sx = 0;
+        let sy = 0;
+        let n = 0;
+        for (let i = 0; i < ring.length; i++) {
+            const pt = ring[i];
+            if (!pt || pt.length < 2) continue;
+            const lonlat = isWebMercator ? this.webMercatorToLonLat(pt[0], pt[1]) : { lon: pt[0], lat: pt[1] };
+            sx += lonlat.lon;
+            sy += lonlat.lat;
+            n++;
+        }
+        if (n === 0) return { longitude: 0, latitude: 0 };
+        return { longitude: sx / n, latitude: sy / n };
+    }
+
+    // Detect if FeatureCollection uses EPSG:3857
+    detectWebMercatorCRS(geojson) {
+        const name = geojson?.crs?.properties?.name || geojson?.crs?.properties?.code || '';
+        return /3857|102100|web\s*mercator/i.test(String(name));
+    }
+
+    // Convert Web Mercator meters (EPSG:3857) to lon/lat degrees (EPSG:4326)
+    webMercatorToLonLat(x, y) {
+        const R = 6378137.0;
+        const lon = (x / R) * 180 / Math.PI;
+        const lat = (2 * Math.atan(Math.exp(y / R)) - (Math.PI / 2)) * 180 / Math.PI;
+        return { lon, lat };
+    }
+
+    // Get material color based on hazard type and severity using centralized colors
     getHazardMaterial(hazardType, severity) {
-        const baseColors = {
-            chemical: Cesium.Color.YELLOW,
-            biological: Cesium.Color.GREEN,
-            radiological: Cesium.Color.ORANGE,
-            nuclear: Cesium.Color.RED,
-            environmental: Cesium.Color.BLUE,
-            physical: Cesium.Color.PURPLE
-        };
-
-        const baseColor = baseColors[hazardType.toLowerCase()] || Cesium.Color.GRAY;
         const alpha = 0.3 + (severity * 0.1); // 0.4 to 0.8 based on severity
-        
-        return baseColor.withAlpha(alpha);
+        return colorFor(hazardType, alpha);
     }
 
     // Get severity color for outlines
@@ -143,18 +176,13 @@ export class HazardManager {
         return Math.min(2 + severity, 6);
     }
 
-    // Get hazard icon (placeholder - will be implemented with actual icons)
+    // Get hazard icon using centralized icon generation
     getHazardIcon(hazardType) {
-        // For now, return a simple colored circle
-        // In production, this would load actual icon images
-        return 'data:image/svg+xml;base64,' + btoa(`
-            <svg width="32" height="32" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="16" cy="16" r="12" fill="${this.getHazardTypeColor(hazardType)}" stroke="white" stroke-width="2"/>
-            </svg>
-        `);
+        const color = this.getHazardTypeColor(hazardType);
+        return svgDot(color);
     }
 
-    // Get hazard type color for icons
+    // Get hazard type color using centralized colors
     getHazardTypeColor(hazardType) {
         const colors = {
             chemical: '#FFD700',

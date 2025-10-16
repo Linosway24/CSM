@@ -17,21 +17,8 @@ class OEHSAHazardMap {
         this.filterManager = null;
         this.uiManager = null;
         
-        // Configuration
-        this.config = {
-            // Cesium token - replace with your actual token (required for Google 3D Tiles)
-            cesiumToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhMzg4YjBkOC0wMGUwLTRjMzMtODZjMy05NDA0NGYyMzIzZGEiLCJpZCI6MzI0MzMxLCJpYXQiOjE3NTc5NjQxMDh9.OSWvv6a8r1wlWVgCf9QvHSIhNIBTMqWukie1hvCEpJ8',
-            // Bing Maps key for fallback imagery (optional)
-            bingMapsKey: 'your-bing-maps-key-here',
-            // Initial camera position (Hill Air Force Base area)
-            initialPosition: {
-                longitude: -111.9731,
-                latitude: 41.1234,
-                height: 1000
-            },
-            // Data file path
-            dataFile: './data/Hill Air Force Vectors.geojson'
-        };
+        // Load configuration from external file
+        this.config = null;
     }
 
     async init() {
@@ -40,6 +27,9 @@ class OEHSAHazardMap {
             
             // Show loading indicator
             this.showLoading(true);
+            
+            // Load configuration
+            await this.loadConfiguration();
             
             // Initialize Cesium viewer
             await this.initializeCesium();
@@ -61,6 +51,39 @@ class OEHSAHazardMap {
         } catch (error) {
             console.error('Failed to initialize OEHSA Hazard Map:', error);
             this.showError('Failed to initialize the hazard map. Please refresh the page.');
+        }
+    }
+
+    // Load configuration from external JSON file
+    async loadConfiguration() {
+        try {
+            const response = await fetch('./config.json');
+            if (!response.ok) {
+                throw new Error(`Failed to load configuration: ${response.statusText}`);
+            }
+            this.config = await response.json();
+            
+            // Set default values if not provided
+            this.config.initialPosition = this.config.initialPosition || {
+                longitude: -111.9731,
+                latitude: 41.1234,
+                height: 1000
+            };
+            
+            console.log('Configuration loaded:', this.config);
+        } catch (error) {
+            console.warn('Failed to load configuration, using defaults:', error);
+            // Fallback configuration
+            this.config = {
+                cesiumToken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhMzg4YjBkOC0wMGUwLTRjMzMtODZjMy05NDA0NGYyMzIzZGEiLCJpZCI6MzI0MzMxLCJpYXQiOjE3NTc5NjQxMDh9.OSWvv6a8r1wlWVgCf9QvHSIhNIBTMqWukie1hvCEpJ8',
+                dataFile: './data/Hill Air Force Vectors.geojson',
+                offlineFallback: true,
+                initialPosition: {
+                    longitude: -111.9731,
+                    latitude: 41.1234,
+                    height: 1000
+                }
+            };
         }
     }
 
@@ -133,7 +156,7 @@ class OEHSAHazardMap {
         await this.loadGooglePhotorealistic3DTiles();
     }
 
-    // Load Google Photorealistic 3D Tiles
+    // Load Google Photorealistic 3D Tiles with offline fallback
     async loadGooglePhotorealistic3DTiles() {
         try {
             console.log('Loading Google Photorealistic 3D Tiles...');
@@ -142,31 +165,23 @@ class OEHSAHazardMap {
             console.log('Google Photorealistic 3D Tiles loaded successfully');
         } catch (error) {
             console.warn('Failed to load Google Photorealistic 3D Tiles:', error);
-            console.log('Falling back to standard imagery...');
-            // Fallback to standard imagery if Google 3D Tiles fail
-            this.viewer.scene.globe.show = true;
-            this.viewer.scene.globe.imageryLayers.removeAll();
-            this.viewer.scene.globe.imageryLayers.addImageryProvider(this.createImageryProvider());
+            
+            if (this.config.offlineFallback) {
+                console.log('Falling back to standard imagery...');
+                // Fallback to standard imagery if Google 3D Tiles fail
+                this.viewer.scene.globe.show = true;
+                this.viewer.scene.globe.imageryLayers.removeAll();
+                this.viewer.scene.globe.imageryLayers.addImageryProvider(this.createImageryProvider());
+            } else {
+                throw error;
+            }
         }
     }
 
     // Create imagery provider with fallback options
     createImageryProvider() {
-        // Try Bing Maps first if key is available
-        if (this.config.bingMapsKey && this.config.bingMapsKey !== 'your-bing-maps-key-here') {
-            try {
-                return new Cesium.BingMapsImageryProvider({
-                    url: 'https://dev.virtualearth.net',
-                    key: this.config.bingMapsKey,
-                    mapStyle: Cesium.BingMapsStyle.AERIAL_WITH_LABELS
-                });
-            } catch (error) {
-                console.warn('Bing Maps failed, falling back to default imagery:', error);
-            }
-        }
-        
         // Fallback to Cesium World Imagery (requires Cesium Ion token)
-        if (this.config.cesiumToken && this.config.cesiumToken !== 'your-cesium-token-here') {
+        if (this.config.cesiumToken && this.config.cesiumToken !== 'PUT-YOUR-CESIUM-ION-TOKEN-HERE') {
             return new Cesium.IonImageryProvider({ assetId: 1 }); // World Imagery
         }
         

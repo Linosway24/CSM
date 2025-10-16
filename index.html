@@ -2210,12 +2210,12 @@
                                 outlineColor: Cesium.Color.YELLOW,
                             outlineWidth: 3,
                                 height: 0,
-                            extrudedHeight: 5, // 5 meter height
+                            extrudedHeight: 30, // 30 meters total height
                                 closeTop: true,
                                 closeBottom: true,
                             heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-                            show: true, // Explicitly set show to true
-                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE), // Always visible
+                            show: true, // Show all polygons
+                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE), // Always visible at all distances
                             classificationType: Cesium.ClassificationType.BOTH, // Render on both terrain and 3D tiles
                             shadows: Cesium.ShadowMode.DISABLED, // Disable shadows to prevent rendering issues
                             perPositionHeight: false // Use constant height
@@ -2231,13 +2231,13 @@
                                 outlineColor: Cesium.Color.YELLOW,
                                 outlineWidth: 5, // Thicker outline
                                 height: 0,
-                                extrudedHeight: 10, // Higher extrusion
+                                extrudedHeight: 30, // 30 meters total height
                                 closeTop: true,
                                 closeBottom: true,
                                 heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-                                show: true,
-                                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE),
-                                classificationType: Cesium.ClassificationType.TERRAIN, // Only terrain
+                                show: true, // Show all polygons
+                                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE), // Always visible at all distances
+                                classificationType: Cesium.ClassificationType.BOTH, // Render on both terrain and 3D tiles
                                 shadows: Cesium.ShadowMode.DISABLED,
                                 perPositionHeight: false
                             };
@@ -2250,8 +2250,14 @@
                             properties: {
                                 hazardData: props
                             },
-                            show: true // Also set show on the entity itself
+                            show: true // Show all polygons
                         });
+                        
+                        // Force polygon to be visible
+                        polygonEntity.show = true;
+                        if (polygonEntity.polygon) {
+                            polygonEntity.polygon.show = true;
+                        }
 
                         // Calculate centroid if not available
                         let centroid = props.centroid;
@@ -2539,8 +2545,8 @@
                         console.log('Current camera location:', currentLat.toFixed(6) + '°N, ' + currentLon.toFixed(6) + '°W');
                         console.log('Current camera height:', currentCartographic.height.toFixed(2) + 'm');
                         
-                        // Fly directly to the Cartesian3 position with overhead view
-                        this.viewer.camera.flyTo({
+                        // Fly directly overhead to the Cartesian3 position
+                        const flyPromise = this.viewer.camera.flyTo({
                             destination: targetPosition,
                             orientation: {
                                 heading: 0.0,
@@ -2550,19 +2556,46 @@
                             duration: 2.5
                         });
                         
-                        // Use a timeout to check final position after animation
-                        setTimeout(() => {
-                            console.log('=== CAMERA FLYTO COMPLETED (after 2.5s) ===');
-                            const finalPosition = this.viewer.camera.position;
-                            const finalCartographic = Cesium.Cartographic.fromCartesian(finalPosition);
-                            const finalLat = Cesium.Math.toDegrees(finalCartographic.latitude);
-                            const finalLon = Cesium.Math.toDegrees(finalCartographic.longitude);
-                            console.log('Final camera location:', finalLat.toFixed(6) + '°N, ' + finalLon.toFixed(6) + '°W');
-                            console.log('Final camera height:', finalCartographic.height.toFixed(2) + 'm');
-                            
-                            // Restart proximity checking after zoom completes
-                            this.startProximityCheck();
-                        }, 2500);
+                        // Handle flyTo completion with proper scene refresh
+                        if (flyPromise && typeof flyPromise.then === 'function') {
+                            flyPromise.then(() => {
+                                console.log('=== CAMERA FLYTO COMPLETED ===');
+                                const finalPosition = this.viewer.camera.position;
+                                const finalCartographic = Cesium.Cartographic.fromCartesian(finalPosition);
+                                const finalLat = Cesium.Math.toDegrees(finalCartographic.latitude);
+                                const finalLon = Cesium.Math.toDegrees(finalCartographic.longitude);
+                                console.log('Final camera location:', finalLat.toFixed(6) + '°N, ' + finalLon.toFixed(6) + '°W');
+                                console.log('Final camera height:', finalCartographic.height.toFixed(2) + 'm');
+                                
+                                // Force scene refresh after camera movement
+                                this.viewer.scene.requestRender();
+                                
+                                // Restart proximity checking after zoom completes
+                                this.startProximityCheck();
+                            }).catch(error => {
+                                console.error('Camera flyTo failed:', error);
+                                // Force scene refresh even on error
+                                this.viewer.scene.requestRender();
+                                this.startProximityCheck();
+                            });
+                        } else {
+                            // Fallback: use timeout if flyPromise doesn't support promises
+                            setTimeout(() => {
+                                console.log('=== CAMERA FLYTO COMPLETED (fallback timeout) ===');
+                                const finalPosition = this.viewer.camera.position;
+                                const finalCartographic = Cesium.Cartographic.fromCartesian(finalPosition);
+                                const finalLat = Cesium.Math.toDegrees(finalCartographic.latitude);
+                                const finalLon = Cesium.Math.toDegrees(finalCartographic.longitude);
+                                console.log('Final camera location:', finalLat.toFixed(6) + '°N, ' + finalLon.toFixed(6) + '°W');
+                                console.log('Final camera height:', finalCartographic.height.toFixed(2) + 'm');
+                                
+                                // Force scene refresh
+                                this.viewer.scene.requestRender();
+                                
+                                // Restart proximity checking after zoom completes
+                                this.startProximityCheck();
+                            }, 2500);
+                        }
                         
                         console.log('Camera flyTo initiated to target position');
                         return;
@@ -2812,8 +2845,8 @@
                     
                     console.log('Flying to coordinates:', centerLat.toFixed(6), centerLon.toFixed(6), `height: ${height}m`);
                     
-                    // Fly to the calculated position
-                    this.viewer.camera.flyTo({
+                    // Fly directly overhead to the calculated position
+                    const flyPromise = this.viewer.camera.flyTo({
                         destination: targetPosition,
                         orientation: {
                             heading: 0.0,
@@ -2822,6 +2855,28 @@
                         },
                         duration: 2.5
                     });
+                    
+                    // Handle flyTo completion with proper scene refresh
+                    if (flyPromise && typeof flyPromise.then === 'function') {
+                        flyPromise.then(() => {
+                            console.log('=== COORDINATES FLYTO COMPLETED ===');
+                            // Force scene refresh after camera movement
+                            this.viewer.scene.requestRender();
+                            console.log('Scene refreshed after coordinates flyTo');
+                        }).catch(error => {
+                            console.error('Coordinates flyTo failed:', error);
+                            // Force scene refresh even on error
+                            this.viewer.scene.requestRender();
+                        });
+                    } else {
+                        // Fallback: use timeout if flyPromise doesn't support promises
+                        setTimeout(() => {
+                            console.log('=== COORDINATES FLYTO COMPLETED (fallback timeout) ===');
+                            // Force scene refresh
+                            this.viewer.scene.requestRender();
+                            console.log('Scene refreshed after coordinates flyTo (fallback)');
+                        }, 2500);
+                    }
                     
                     console.log('Camera flyTo initiated to coordinates');
                     
