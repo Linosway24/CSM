@@ -1,0 +1,6 @@
+{
+  "cesiumToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhMzg4YjBkOC0wMGUwLTRjMzMtODZjMy05NDA0NGYyMzIzZGEiLCJpZCI6MzI0MzMxLCJpYXQiOjE3NTc5NjQxMDh9.OSWvv6a8r1wlWVgCf9QvHSIhNIBTMqWukie1hvCEpJ8",
+  "dataFile": "./data/HillAFBVector.geojson",
+  "offlineFallback": true
+  ,"googleMapsApiKey": ""
+}

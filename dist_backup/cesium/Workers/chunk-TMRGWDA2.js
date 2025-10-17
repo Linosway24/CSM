@@ -1,0 +1,2 @@
+/*! For license information please see chunk-TMRGWDA2.js.LICENSE.txt */
+import{f as e}from"./chunk-I4JBCTLR.js";function r(t){t=t??e.EMPTY_OBJECT,this.position=t.position,this.normal=t.normal,this.st=t.st,this.bitangent=t.bitangent,this.tangent=t.tangent,this.color=t.color}var n=r;export{n as a};
