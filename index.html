@@ -234,6 +234,15 @@
             background-color: #c82333;
         }
 
+        .csm-btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .csm-btn-success:hover {
+            background-color: #218838;
+        }
+
         .control-panel {
             display: none;
         }
@@ -931,6 +940,7 @@
                 <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
                 <button class="csm-btn csm-btn-primary" id="riskLevelOrder">Risk Level Order</button>
                 <button class="csm-btn csm-btn-danger" id="riskMatrix">Risk Matrix</button>
+                <button class="csm-btn csm-btn-success" id="exportForm" style="display: none;">Export/Save</button>
             </div>
         </div>
 
@@ -4390,6 +4400,10 @@
                 document.getElementById('riskMatrix').addEventListener('click', () => {
                     this.showRiskMatrix();
                 });
+
+                document.getElementById('exportForm').addEventListener('click', () => {
+                    this.exportForm();
+                });
             }
 
             addInitialRow() {
@@ -4445,6 +4459,9 @@
                 const tbody = document.getElementById('csmFormBody');
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 tbody.innerHTML = '';
+
+                // Update export button visibility
+                this.updateExportButtonVisibility();
 
                 // Calculate how many rows can fit in the available space
                 const maxVisibleRows = this.calculateMaxVisibleRows();
@@ -4847,6 +4864,7 @@
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
                 this.clearFormComparisonHighlights();
+                this.updateExportButtonVisibility();
                 // Don't re-render the table, just update the data
             }
 
@@ -4856,6 +4874,7 @@
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
                 this.clearFormComparisonHighlights();
+                this.updateExportButtonVisibility();
                 // Don't re-render the table, just update the data
             }
 
@@ -5672,6 +5691,16 @@
                 this.hazardRows = [];
                 this.addInitialRow();
                 this.clearFormComparisonHighlights();
+                this.updateExportButtonVisibility();
+            }
+
+            updateExportButtonVisibility() {
+                const exportButton = document.getElementById('exportForm');
+                if (exportButton) {
+                    // Show button only if there are rows with at least a source filled in
+                    const hasData = this.hazardRows.some(row => row.source && row.source.trim() !== '');
+                    exportButton.style.display = hasData ? 'inline-block' : 'none';
+                }
             }
 
             showRiskLevelOrder() {
@@ -5970,6 +5999,295 @@
                 if (matrixViewer) {
                     document.body.removeChild(matrixViewer);
                 }
+            }
+
+            exportForm() {
+                if (this.hazardRows.length === 0) {
+                    alert('No data to export. Please add at least one hazard.');
+                    return;
+                }
+
+                // Map source names from student answers to hazard names used in getDetailedHazardInfo
+                const sourceNameMapping = {
+                    'Jet engine testing pad': 'Engine Testing Pad1',
+                    'Legacy burn pit': 'Legacy burn Pit',
+                    'CATM Range': 'CATM Range',
+                    'Base CATM Range': 'CATM Range',
+                    'Historic Landfill': 'Histoic Landfill',
+                    'Satellite comms dish': 'Satellite Comms Dish',
+                    'Mechanical Shop': 'Mechanical Shop',
+                    'Gate Area': 'Gate Area',
+                    'Field Training Area': 'Feild Training Area',
+                    'Medical X-ray': 'Medical X ray',
+                    'Arthropod Vectors': "'arthropod Vectors"
+                };
+
+                // Get correct answers and compare with student answers
+                const exportData = this.hazardRows.map(row => {
+                    const studentAnswer = {
+                        hazardId: row.hazardId,
+                        source: row.source || '',
+                        environmentalMedium: row.environmentalMedium || '',
+                        healthThreat: row.healthThreat || '',
+                        exposureRoute: row.exposureRoute || '',
+                        populationAffected: row.populationAffected || '',
+                        existingControls: row.existingControls || '',
+                        frequencyDuration: row.frequencyDuration || '',
+                        severity: row.severity || '',
+                        probability: row.probability || '',
+                        risk: row.risk || ''
+                    };
+
+                    // Get correct answer by matching source name
+                    let correctAnswer = null;
+                    if (studentAnswer.source) {
+                        const mappedName = sourceNameMapping[studentAnswer.source] || studentAnswer.source;
+                        const props = { display_name: mappedName, hazard_type: mappedName, Name: mappedName };
+                        correctAnswer = this.getDetailedHazardInfo(props);
+                    }
+
+                    // Compare answers
+                    const comparison = {
+                        source: this.compareField(studentAnswer.source, correctAnswer?.source),
+                        environmentalMedium: this.compareField(studentAnswer.environmentalMedium, correctAnswer?.environmentalMedium),
+                        healthThreat: this.compareField(studentAnswer.healthThreat, correctAnswer?.healthThreat),
+                        exposureRoute: this.compareField(studentAnswer.exposureRoute, correctAnswer?.exposureRoute),
+                        populationAffected: this.compareField(studentAnswer.populationAffected, correctAnswer?.populationAffected),
+                        existingControls: this.compareField(studentAnswer.existingControls, correctAnswer?.existingControls),
+                        frequencyDuration: this.compareField(studentAnswer.frequencyDuration, correctAnswer?.freqDuration),
+                        severity: this.compareField(studentAnswer.severity, correctAnswer?.severity),
+                        probability: this.compareField(studentAnswer.probability, correctAnswer?.probability),
+                        risk: this.compareField(studentAnswer.risk, correctAnswer?.risk)
+                    };
+
+                    return {
+                        studentAnswer,
+                        correctAnswer,
+                        comparison
+                    };
+                });
+
+                // Generate printable HTML
+                this.generateExportHTML(exportData);
+            }
+
+            compareField(studentValue, correctValue) {
+                if (!studentValue && !correctValue) return { isCorrect: true, student: '', correct: '' };
+                if (!studentValue) return { isCorrect: false, student: '', correct: correctValue || '' };
+                if (!correctValue) return { isCorrect: false, student: studentValue, correct: '' };
+                
+                const normalizedStudent = this.normalizeValue(studentValue);
+                const normalizedCorrect = this.normalizeValue(correctValue);
+                
+                return {
+                    isCorrect: normalizedStudent === normalizedCorrect,
+                    student: studentValue,
+                    correct: correctValue
+                };
+            }
+
+            generateExportHTML(exportData) {
+                const date = new Date().toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                let html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CSM Form Export - ${date}</title>
+    <style>
+        @page {
+            size: letter;
+            margin: 0.5in;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.2;
+            margin: 0;
+            padding: 0;
+            color: #000;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 16pt;
+        }
+        .header p {
+            margin: 5px 0;
+            font-size: 10pt;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+        th {
+            background-color: #333;
+            color: #fff;
+            padding: 6px 4px;
+            text-align: left;
+            font-size: 8pt;
+            border: 1px solid #000;
+        }
+        td {
+            padding: 4px;
+            border: 1px solid #000;
+            font-size: 8pt;
+            vertical-align: top;
+        }
+        .hazard-id {
+            font-weight: bold;
+            text-align: center;
+            width: 4%;
+        }
+        .correct {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .incorrect {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .empty {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .student-answer {
+            font-weight: bold;
+        }
+        .correct-answer {
+            font-style: italic;
+            font-size: 7pt;
+            color: #666;
+            margin-top: 2px;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #000;
+            background-color: #f8f9fa;
+        }
+        .summary h3 {
+            margin-top: 0;
+            font-size: 12pt;
+        }
+        @media print {
+            body {
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CSM Hazard Assessment Form</h1>
+        <p>Export Date: ${date}</p>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th class="hazard-id">ID</th>
+                <th style="width: 10%;">Source</th>
+                <th style="width: 10%;">Environmental Medium</th>
+                <th style="width: 8%;">Health Threat</th>
+                <th style="width: 8%;">Exposure Route</th>
+                <th style="width: 10%;">Population Affected</th>
+                <th style="width: 10%;">Existing Controls</th>
+                <th style="width: 10%;">Frequency/Duration</th>
+                <th style="width: 6%;">Severity</th>
+                <th style="width: 6%;">Probability</th>
+                <th style="width: 14%;">Risk</th>
+            </tr>
+        </thead>
+        <tbody>`;
+
+                let totalFields = 0;
+                let correctFields = 0;
+
+                exportData.forEach(item => {
+                    const fields = ['source', 'environmentalMedium', 'healthThreat', 'exposureRoute', 
+                                   'populationAffected', 'existingControls', 'frequencyDuration', 
+                                   'severity', 'probability', 'risk'];
+                    
+                    html += `<tr>`;
+                    html += `<td class="hazard-id">${item.studentAnswer.hazardId}</td>`;
+                    
+                    fields.forEach(field => {
+                        const comp = item.comparison[field];
+                        totalFields++;
+                        if (comp.isCorrect) correctFields++;
+                        
+                        let cellClass = '';
+                        let cellContent = '';
+                        
+                        if (!comp.student && !comp.correct) {
+                            cellClass = 'empty';
+                            cellContent = '<em>Empty</em>';
+                        } else if (comp.isCorrect) {
+                            cellClass = 'correct';
+                            cellContent = `<span class="student-answer">${this.escapeHtml(comp.student)}</span>`;
+                        } else {
+                            cellClass = 'incorrect';
+                            cellContent = `<span class="student-answer">${this.escapeHtml(comp.student || '(empty)')}</span>`;
+                            if (comp.correct) {
+                                cellContent += `<br><span class="correct-answer">Correct: ${this.escapeHtml(comp.correct)}</span>`;
+                            }
+                        }
+                        
+                        html += '<td class="' + cellClass + '">' + cellContent + '</td>';
+                    });
+                    
+                    html += `</tr>`;
+                });
+
+                html += `
+        </tbody>
+    </table>
+    <div class="summary">
+        <h3>Summary</h3>
+        <p><strong>Total Hazards:</strong> ${exportData.length}</p>
+        <p><strong>Total Fields:</strong> ${totalFields}</p>
+        <p><strong>Correct Answers:</strong> ${correctFields} (${totalFields > 0 ? Math.round(correctFields / totalFields * 100) : 0}%)</p>
+        <p><strong>Incorrect/Empty Answers:</strong> ${totalFields - correctFields} (${totalFields > 0 ? Math.round((totalFields - correctFields) / totalFields * 100) : 0}%)</p>
+    </div>
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">Print / Save as PDF</button>
+    </div>
+</body>
+</html>`;
+
+                // Open in new window for printing/saving
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(html);
+                printWindow.document.close();
+                
+                // Auto-trigger print dialog after a short delay
+                setTimeout(() => {
+                    printWindow.print();
+                }, 250);
+            }
+
+            escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
 
             showSideBySideComparison(results = this.lastComparisonResults) {
