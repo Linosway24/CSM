@@ -6241,12 +6241,12 @@
                             cellContent = '<em>Empty</em>';
                         } else if (comp.isCorrect) {
                             cellClass = 'correct';
-                            cellContent = `<span class="student-answer">${this.escapeHtml(comp.student)}</span>`;
+                            cellContent = '<span class=\"student-answer\">' + this.escapeHtml(comp.student) + '</span>';
                         } else {
                             cellClass = 'incorrect';
-                            cellContent = `<span class="student-answer">${this.escapeHtml(comp.student || '(empty)')}</span>`;
+                            cellContent = '<span class=\"student-answer\">' + this.escapeHtml(comp.student || '(empty)') + '</span>';
                             if (comp.correct) {
-                                cellContent += `<br><span class="correct-answer">Correct: ${this.escapeHtml(comp.correct)}</span>`;
+                                cellContent += '<br><span class=\"correct-answer\">Correct: ' + this.escapeHtml(comp.correct) + '</span>';
                             }
                         }
                         
