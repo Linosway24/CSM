@@ -1025,12 +1025,12 @@
                     <span class="info-label">Probability:</span>
                     <span id="infoBoxProbability">-</span>
                 </div>
-                </div>
+            </div>
             
             <!-- Navigation Controls -->
             <div class="info-navigation">
                 <button id="prevHazard" class="nav-btn" title="Previous Hazard">←</button>
-                <span id="hazardCounter" class="hazard-counter">1 of 25</span>
+                <span id="hazardCounter" class="hazard-counter">1 of 10</span>
                 <button id="nextHazard" class="nav-btn" title="Next Hazard">→</button>
             </div>
         </div>
@@ -1044,7 +1044,143 @@
                 this.error = null;
             }
 
-            async loadGeoJSON(filePath) {
+            async loadCSV(filePath) {
+                this.loading = true;
+                this.error = null;
+
+                try {
+                    console.log(`Loading CSV data from: ${filePath}`);
+                    
+                    const response = await fetch(filePath);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const csvText = await response.text();
+                    
+                    // Parse CSV (simple parser - handles quoted fields)
+                    const lines = csvText.split('\n').filter(line => line.trim());
+                    if (lines.length < 2) {
+                        throw new Error('CSV file must have at least a header and one data row');
+                    }
+                    
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    const sourceIndex = headers.indexOf('Source');
+                    
+                    if (sourceIndex === -1) {
+                        throw new Error('CSV file must contain a "Source" column');
+                    }
+                    
+                    // Extract source names (skip header row)
+                    const sources = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+                        
+                        // Simple CSV parsing - split by comma, but handle quoted fields
+                        const values = [];
+                        let current = '';
+                        let inQuotes = false;
+                        
+                        for (let j = 0; j < line.length; j++) {
+                            const char = line[j];
+                            if (char === '"') {
+                                inQuotes = !inQuotes;
+                            } else if (char === ',' && !inQuotes) {
+                                values.push(current.trim());
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        values.push(current.trim());
+                        
+                        const source = values[sourceIndex]?.trim();
+                        if (source && source.length > 0) {
+                            sources.push(source);
+                        }
+                    }
+                    
+                    console.log(`Loaded ${sources.length} sources from CSV:`, sources);
+                    
+                    this.loading = false;
+                    return sources;
+
+                } catch (error) {
+                    this.error = error.message;
+                    this.loading = false;
+                    console.error('Failed to load CSV data:', error);
+                    throw error;
+                }
+            }
+
+            normalizeHazardName(name) {
+                if (!name) return '';
+                // Remove leading/trailing apostrophes and quotes, then normalize
+                // Replace hyphens with spaces before removing non-alphanumeric to preserve word separation
+                return name.toLowerCase()
+                    .replace(/^['"]+|['"]+$/g, '') // Remove leading/trailing quotes/apostrophes
+                    .replace(/-/g, ' ') // Replace hyphens with spaces first
+                    .replace(/[^a-z0-9\s]/g, '') // Remove other non-alphanumeric
+                    .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
+                    .trim();
+            }
+
+            matchesCSVSource(geoJSONName, csvSources) {
+                const normalizedGeoJSON = this.normalizeHazardName(geoJSONName);
+                
+                return csvSources.some(csvSource => {
+                    const normalizedCSV = this.normalizeHazardName(csvSource);
+                    
+                    // Direct match
+                    if (normalizedGeoJSON === normalizedCSV) {
+                        return true;
+                    }
+                    
+                    // Known mapping variations - check both directions
+                    const mappings = [
+                        { csv: 'jet engine testing pad', geo: ['engine testing pad', 'engine testing pad1'] },
+                        { csv: 'legacy burn pit', geo: ['legacy burn pit'] },
+                        { csv: 'base catm range', geo: ['catm range'] },
+                        { csv: 'historic landfill', geo: ['histoic landfill', 'historic landfill'] },
+                        { csv: 'satellite comms dish', geo: ['satellite comms dish'] },
+                        { csv: 'mechanical shop', geo: ['mechanical shop'] },
+                        { csv: 'gate area', geo: ['gate area'] },
+                        { csv: 'field training area', geo: ['feild training area', 'field training area'] },
+                        { csv: 'medical x ray', geo: ['medical x ray', 'medical xray', 'medical x ray'] },
+                        { csv: 'arthropod vectors', geo: ['arthropod vectors'] }
+                    ];
+                    
+                    for (const mapping of mappings) {
+                        // Check if CSV matches this mapping
+                        const csvMatches = normalizedCSV === mapping.csv || 
+                                         normalizedCSV.includes(mapping.csv) || 
+                                         mapping.csv.includes(normalizedCSV);
+                        
+                        if (csvMatches) {
+                            // Check if GeoJSON matches any variant in this mapping
+                            for (const geoVariant of mapping.geo) {
+                                if (normalizedGeoJSON === geoVariant || 
+                                    normalizedGeoJSON.includes(geoVariant) || 
+                                    geoVariant.includes(normalizedGeoJSON)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Fallback: Check if CSV source is contained in GeoJSON name or vice versa (after normalization)
+                    // This handles cases like "'arthropod Vectors" matching "Arthropod Vectors"
+                    if (normalizedGeoJSON.includes(normalizedCSV) || normalizedCSV.includes(normalizedGeoJSON)) {
+                        return true;
+                    }
+                    
+                    return false;
+                });
+            }
+
+            async loadGeoJSON(filePath, csvSources = null) {
                 this.loading = true;
                 this.error = null;
 
@@ -1062,8 +1198,8 @@
                     // Validate GeoJSON structure
                     this.validateGeoJSON(data);
                     
-                    // Process and store the data
-                    this.hazardData = this.processHazardData(data);
+                    // Process and store the data with CSV filtering
+                    this.hazardData = this.processHazardData(data, csvSources);
                     
                     console.log(`Successfully loaded ${this.hazardData.features.length} hazard features`);
                     
@@ -1136,99 +1272,122 @@
                 return true; // Feature is valid
             }
 
-            processHazardData(geoJSONData) {
-                console.log('Processing hazard data from points file...');
+            processHazardData(geoJSONData, csvSources = null) {
+                console.log('Processing hazard data from polygon file...');
                 
                 const features = geoJSONData.features || [];
-                console.log(`Found ${features.length} point features`);
+                console.log(`Found ${features.length} polygon features`);
                 
-                // Group points by hazard ID to build polygons
-                const hazardGroups = {};
+                if (csvSources) {
+                    console.log(`Filtering hazards to match ${csvSources.length} CSV sources:`, csvSources);
+                }
                 
-                features.forEach(feature => {
-                    if (feature.geometry && feature.geometry.type === 'Point' && feature.properties) {
+                const matchedHazards = [];
+                const filteredOutHazards = [];
+                
+                // Process polygon features directly
+                const processedFeatures = features.map((feature, index) => {
+                    if (feature.geometry && (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') && feature.properties) {
                         const id = feature.properties.id;
                         const name = feature.properties.Name;
-                        const vertexIndex = feature.properties.vertex_index;
                         
-                        if (id !== null && id !== undefined && vertexIndex !== null && vertexIndex !== undefined) {
-                            if (!hazardGroups[id]) {
-                                hazardGroups[id] = {
-                                    id: id,
-                                    name: name,
-                                    points: []
-                                };
+                        if (id !== null && id !== undefined && name) {
+                            // Filter by CSV sources if provided
+                            if (csvSources && !this.matchesCSVSource(name, csvSources)) {
+                                filteredOutHazards.push({ id, name });
+                                console.log(`Filtering out hazard: ${name} (ID: ${id}) - not in CSV`);
+                                return null;
                             }
                             
-                            hazardGroups[id].points.push({
-                                index: vertexIndex,
-                                coordinates: feature.geometry.coordinates
-                            });
-                        }
-                    }
-                });
-                
-                console.log(`Grouped into ${Object.keys(hazardGroups).length} hazard areas`);
-                
-                // Convert each group to a polygon feature
-                const polygonFeatures = [];
-                
-                Object.values(hazardGroups).forEach(group => {
-                    if (group.points.length >= 3) {
-                        // Sort points by vertex index
-                        group.points.sort((a, b) => a.index - b.index);
-                        
-                        // Convert coordinates to WGS84
-                        console.log(`Converting coordinates for group ${group.name} with ${group.points.length} points`);
-                        const wgs84Coords = group.points.map(point => {
-                            console.log(`Processing point ${point.index}: [${point.coordinates[0]}, ${point.coordinates[1]}]`);
-                            const converted = this.convertWebMercatorToWGS84([point.coordinates]);
-                            console.log(`Conversion result:`, converted);
-                            if (converted && converted.length > 0 && converted[0]) {
-                                console.log(`Converting point ${point.index}: [${point.coordinates[0]}, ${point.coordinates[1]}] -> [${converted[0][0]}, ${converted[0][1]}]`);
-                                return converted[0]; // Get the first (and only) coordinate pair
-                            } else {
-                                console.warn(`Failed to convert point ${point.index}: [${point.coordinates[0]}, ${point.coordinates[1]}]`);
-                                return null; // Mark as invalid
-                            }
-                        }).filter(coord => coord !== null); // Remove invalid coordinates
-                        
-                        console.log(`Group ${group.name} has ${wgs84Coords.length} converted coordinates`);
-                        
-                        if (wgs84Coords && wgs84Coords.length >= 3) {
-                            const polygonFeature = {
+                            matchedHazards.push({ id, name });
+                            
+                            // Transform to hazard feature format
+                            const hazardFeature = {
                                 type: 'Feature',
                                 properties: {
-                                    hazard_id: `H${group.id}`,
-                                    hazard_type: group.name,
-                                    environmental_medium: this.getEnvironmentalMedium(group.name),
-                                    severity_level: this.getSeverityLevel(group.name),
-                                    location_description: `${group.name} - Building ${group.id}`,
-                                    contaminant: this.getContaminant(group.name),
-                                    display_name: group.name,
-                                    color: this.getHazardColor(group.name),
-                                    icon: this.getHazardIcon(group.name)
+                                    hazard_id: `H${id}`,
+                                    original_id: id, // Store original ID for sorting
+                                    hazard_type: name,
+                                    display_name: name,
+                                    severity: this.getSeverityLevel(name),
+                                    environmental_medium: this.getEnvironmentalMedium(name),
+                                    contaminant: this.getContaminant(name),
+                                    color: this.getHazardColor(name),
+                                    icon: this.getHazardIcon(name)
                                 },
-                                geometry: {
-                                    type: 'Polygon',
-                                    coordinates: [wgs84Coords]
-                                }
+                                geometry: feature.geometry
                             };
                             
-                            polygonFeatures.push(polygonFeature);
-                            console.log(`Created polygon for ${group.name} with ${wgs84Coords.length} points`);
+                            console.log(`✓ Processed hazard ${name} (ID: ${id})`);
+                            return hazardFeature;
+                        }
+                    }
+                    return null;
+                }).filter(feature => feature !== null);
+                
+                console.log(`\n=== HAZARD FILTERING SUMMARY ===`);
+                console.log(`Matched hazards: ${matchedHazards.length}`, matchedHazards.map(h => `${h.name} (H${h.id})`));
+                if (filteredOutHazards.length > 0) {
+                    console.log(`Filtered out hazards: ${filteredOutHazards.length}`, filteredOutHazards.map(h => `${h.name} (H${h.id})`));
+                }
+                console.log(`Total processed: ${processedFeatures.length} hazards\n`);
+
+                    // Remove duplicates based on hazard_id, preferring features with valid coordinates
+                    const uniqueFeatures = [];
+                    const seenIds = new Map(); // Use Map to store both ID and feature
+                    
+                    processedFeatures.forEach(feature => {
+                        const hazardId = feature.properties.hazard_id;
+                        
+                        if (!seenIds.has(hazardId)) {
+                            seenIds.set(hazardId, feature);
+                            uniqueFeatures.push(feature);
+                            } else {
+                            const existingFeature = seenIds.get(hazardId);
+                            // Check if current feature has valid coordinates and existing doesn't
+                            const currentHasCoords = feature.geometry && feature.geometry.coordinates && 
+                                                   feature.geometry.coordinates.length > 0 && 
+                                                   feature.geometry.coordinates[0] && 
+                                                   feature.geometry.coordinates[0].length > 0;
+                            
+                            const existingHasCoords = existingFeature.geometry && existingFeature.geometry.coordinates && 
+                                                     existingFeature.geometry.coordinates.length > 0 && 
+                                                     existingFeature.geometry.coordinates[0] && 
+                                                     existingFeature.geometry.coordinates[0].length > 0;
+                            
+                            if (currentHasCoords && !existingHasCoords) {
+                                // Replace existing with current (current has coords, existing doesn't)
+                                console.log(`Replacing ${feature.properties.display_name} with coordinates for ${hazardId}`);
+                                const index = uniqueFeatures.indexOf(existingFeature);
+                                uniqueFeatures[index] = feature;
+                                seenIds.set(hazardId, feature);
+                            } else {
+                                console.log(`Removing duplicate hazard: ${feature.properties.display_name} (ID: ${hazardId})`);
                         }
                     }
                 });
                 
-                console.log(`Created ${polygonFeatures.length} polygon features`);
+                console.log(`Created ${uniqueFeatures.length} unique hazard features (removed ${processedFeatures.length - uniqueFeatures.length} duplicates)`);
                 
-                const processedData = {
+                // Sort by original ID to maintain consistent order, then renumber sequentially from 1 to N
+                uniqueFeatures.sort((a, b) => {
+                    // Use stored original_id for sorting
+                    const aId = a.properties.original_id || parseInt(a.properties.hazard_id.replace('H', '')) || 0;
+                    const bId = b.properties.original_id || parseInt(b.properties.hazard_id.replace('H', '')) || 0;
+                    return aId - bId;
+                });
+                
+                // Renumber hazards sequentially from 1 to N
+                uniqueFeatures.forEach((feature, index) => {
+                    const newId = index + 1;
+                    feature.properties.hazard_id = `H${newId}`;
+                    console.log(`Renumbered ${feature.properties.display_name} to H${newId}`);
+                });
+                
+                return {
                     type: 'FeatureCollection',
-                    features: polygonFeatures
+                    features: uniqueFeatures
                 };
-
-                return processedData;
             }
 
             // Helper methods for hazard classification
@@ -1636,7 +1795,7 @@
                         height: 20000
                     },
                         // Data file path
-                        dataFile: './src/data/HillAFBPoint.geojson'
+                        dataFile: './Hill Air Force Vectors.geojson'
                 };
 
                 // Initialize data loader
@@ -1684,6 +1843,57 @@
                     console.error('Failed to initialize OEHSA Hazard Map:', error);
                     this.showError('Failed to initialize the hazard map. Please refresh the page.');
                 }
+            }
+
+            // Web Mercator projection for coordinate conversion
+            get webMercatorProjection() {
+                if (!this._webMercatorProjection) {
+                    this._webMercatorProjection = new Cesium.WebMercatorProjection();
+                }
+                return this._webMercatorProjection;
+            }
+
+            // Convert EPSG:3857 (Web Mercator) coordinates to WGS84 degrees
+            convertWebMercatorToWGS84(x, y) {
+                const cartesian = new Cesium.Cartesian3(x, y, 0);
+                const cartographic = this.webMercatorProjection.unproject(cartesian);
+                return [
+                    Cesium.Math.toDegrees(cartographic.longitude),
+                    Cesium.Math.toDegrees(cartographic.latitude)
+                ];
+            }
+
+            // Convert coordinate array from Web Mercator to WGS84
+            convertCoordinateArray(webMercatorCoords) {
+                return webMercatorCoords.map(coord => {
+                    const [lon, lat] = this.convertWebMercatorToWGS84(coord[0], coord[1]);
+                    return [lon, lat];
+                });
+            }
+
+            // Process hazard data with coordinate conversion
+            processHazardDataWithCoordinateConversion(features) {
+                console.log('[HazardGeom] Processing hazard data with coordinate conversion...');
+                
+                const processedFeatures = features.map(feature => {
+                    const processedFeature = { ...feature };
+                    
+                    // Convert coordinates for different geometry types
+                    if (feature.geometry.type === 'Polygon') {
+                        processedFeature.geometry.coordinates = feature.geometry.coordinates.map(ring => 
+                            this.convertCoordinateArray(ring)
+                        );
+                    } else if (feature.geometry.type === 'MultiPolygon') {
+                        processedFeature.geometry.coordinates = feature.geometry.coordinates.map(polygon => 
+                            polygon.map(ring => this.convertCoordinateArray(ring))
+                        );
+                    }
+                    
+                    return processedFeature;
+                });
+                
+                console.log('[HazardGeom] Coordinate conversion complete');
+                return processedFeatures;
             }
 
             showLoading(show) {
@@ -1891,7 +2101,7 @@
                     console.log('Tileset created:', this.tileset);
                     
                     console.log('Adding tileset to scene...');
-                    this.viewer.scene.primitives.add(this.tileset);
+                this.viewer.scene.primitives.add(this.tileset);
                     console.log('Google Photorealistic 3D Tiles added to scene successfully');
                     
                     // Add error handling for the tileset (check if readyPromise exists)
@@ -1950,6 +2160,19 @@
             async loadHazardData() {
                 try {
                     console.log('=== DEBUG: Loading hazard data ===');
+                    
+                    // Load CSV first to get allowed sources
+                    const csvPath = './Documents/BEO OEHSA CSM Injects copy.csv';
+                    console.log('Loading CSV from:', csvPath);
+                    let csvSources = null;
+                    try {
+                        csvSources = await this.dataLoader.loadCSV(csvPath);
+                        console.log('CSV sources loaded:', csvSources);
+                    } catch (csvError) {
+                        console.warn('Failed to load CSV file, proceeding without filtering:', csvError);
+                        // Continue without CSV filtering if file not found
+                    }
+                    
                     console.log('Data file path:', this.config.dataFile);
                     console.log('DataLoader object:', this.dataLoader);
                     
@@ -1966,15 +2189,18 @@
                     const rawData = await response.json();
                     console.log('Direct fetch successful, raw data:', rawData);
                     
-                    // Load GeoJSON data using DataLoader
+                    // Load GeoJSON data using DataLoader with CSV filtering
                     console.log('Loading with DataLoader...');
-                    const hazardData = await this.dataLoader.loadGeoJSON(this.config.dataFile);
+                    const hazardData = await this.dataLoader.loadGeoJSON(this.config.dataFile, csvSources);
                     console.log('DataLoader result:', hazardData);
                     
-                    // Store the loaded data
-                    this.hazardFeatures = hazardData.features;
+                    // Process hazard data with coordinate conversion
+                    const processedFeatures = this.processHazardDataWithCoordinateConversion(hazardData.features);
+                    
+                    // Store the processed data
+                    this.hazardFeatures = processedFeatures;
                     // Store for navigation, sorted by hazard ID (H1, H2, H3, etc.)
-                    this.hazardData = hazardData.features.sort((a, b) => {
+                    this.hazardData = processedFeatures.sort((a, b) => {
                         // Extract number from hazard_id (e.g., "H1" -> 1, "H2" -> 2)
                         const aNum = parseInt(a.properties.hazard_id.replace('H', ''));
                         const bNum = parseInt(b.properties.hazard_id.replace('H', ''));
@@ -2088,9 +2314,20 @@
                 // Add Cesium click handler for entities
                 this.viewer.cesiumWidget.screenSpaceEventHandler.setInputAction((click) => {
                     const pickedObject = this.viewer.scene.pick(click.position);
-                    if (pickedObject && pickedObject.id && pickedObject.id.clickHandler) {
-                        console.log('Entity clicked:', pickedObject.id);
+                    console.log('[ClickDebug] Click detected, picked object:', pickedObject);
+                    
+                    if (pickedObject && pickedObject.id) {
+                        console.log('[ClickDebug] Picked entity ID:', pickedObject.id.id);
+                        console.log('[ClickDebug] Has clickHandler:', !!pickedObject.id.clickHandler);
+                        
+                        if (pickedObject.id.clickHandler) {
+                            console.log('[ClickDebug] Calling click handler for:', pickedObject.id.id);
                         pickedObject.id.clickHandler(pickedObject.id);
+                        } else {
+                            console.log('[ClickDebug] No click handler found for:', pickedObject.id.id);
+                        }
+                    } else {
+                        console.log('[ClickDebug] No entity picked or no ID found');
                     }
                 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
             }
@@ -2141,158 +2378,96 @@
             }
 
             renderHazardFeature(feature, index) {
-                try {
+                let pinEntity = null;
                     const props = feature.properties;
-                    // For Polygon features, coordinates are in feature.geometry.coordinates[0]
-                    const coordinates = feature.geometry.coordinates[0];
+                
+                try {
                     
-                    // Add coordinates to props for zoom functionality
-                    props.coordinates = coordinates;
-
-                    console.log(`Rendering hazard ${index} at coordinates:`, coordinates);
-                    console.log(`Hazard ID: ${props.hazard_id}, Name: ${props.display_name}`);
-                    console.log(`First few coordinates:`, coordinates.slice(0, 3));
-                    console.log(`First coordinate pair:`, coordinates[0]);
-                    console.log(`Coordinate structure:`, {
-                        length: coordinates.length,
-                        firstElement: coordinates[0],
-                        isArray: Array.isArray(coordinates[0]),
-                        firstElementLength: Array.isArray(coordinates[0]) ? coordinates[0].length : 'N/A'
-                    });
-
-                    // Validate coordinates before processing
-                    if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 3) {
-                        console.warn(`Invalid coordinates for hazard ${index}:`, coordinates);
-                        return;
+                    // Get coordinates (already converted to WGS84)
+                    const coordsRoot = feature && feature.geometry && feature.geometry.coordinates;
+                    let coordinates = null;
+                    if (Array.isArray(coordsRoot) && coordsRoot.length > 0) {
+                        // For Polygon: [ring]
+                        // For MultiPolygon: [[ring], [ring], ...] => take first polygon's first ring
+                        coordinates = coordsRoot[0];
+                        if (Array.isArray(coordinates) && coordinates.length > 0 && Array.isArray(coordinates[0]) && Array.isArray(coordinates[0][0])) {
+                            coordinates = coordinates[0];
+                        }
                     }
                     
-                    // Check if coordinates are still nested (array of arrays of coordinate pairs)
-                    let coordPairs = coordinates;
-                    if (coordinates.length > 0 && Array.isArray(coordinates[0]) && Array.isArray(coordinates[0][0])) {
-                        // Still nested - take the first ring
-                        coordPairs = coordinates[0];
-                        console.log(`Unwrapped coordinate ring for hazard ${index}:`, coordPairs);
+                    // Handle empty coordinates (like Gym Sauna) - use a fallback coordinate
+                    if (!Array.isArray(coordinates) || coordinates.length < 3) {
+                        console.warn(`[HazardGeom] Invalid or empty coordinates for hazard ${index}:`, coordinates);
+                        console.log(`[HazardGeom] Using fallback coordinate for ${props.display_name}`);
+                        // Use a fallback coordinate near Hill Air Force Base
+                        coordinates = [
+                            [-111.9731, 41.1234], // Base coordinates
+                            [-111.9721, 41.1234], // Slightly offset
+                            [-111.9721, 41.1224], // Create a small triangle
+                            [-111.9731, 41.1234]  // Close the polygon
+                        ];
                     }
                     
                     // Filter out invalid coordinates
-                    const validCoords = coordPairs.filter(coord => {
-                        const isValid = Array.isArray(coord) && 
+                    const validCoords = coordinates.filter(coord => {
+                        return Array.isArray(coord) && 
                             coord.length >= 2 && 
                             !isNaN(coord[0]) && 
                             !isNaN(coord[1]) &&
                             coord[0] >= -180 && coord[0] <= 180 &&
                             coord[1] >= -90 && coord[1] <= 90;
-                        
-                        if (!isValid) {
-                            console.log(`Invalid coordinate filtered out:`, coord);
-                        }
-                        return isValid;
                     });
                     
                     if (validCoords.length < 3) {
-                        console.warn(`Not enough valid coordinates for hazard ${index}:`, validCoords.length);
+                        console.warn(`[HazardGeom] Not enough valid coordinates for hazard ${index}:`, validCoords.length);
                         return;
                     }
 
-                    // Convert GeoJSON coordinates to Cesium positions
-                    const positions = validCoords.map(coord => 
-                        Cesium.Cartesian3.fromDegrees(coord[0], coord[1], 0)
-                    );
-
-                    console.log(`Converted to Cesium positions:`, positions);
-                    console.log(`Valid coordinates count: ${validCoords.length}`);
-
-                        // Create polygon entity for the hazard area
-                        let polygonConfig = {
-                                hierarchy: positions,
-                            material: Cesium.Color.RED.withAlpha(0.3), // Red with 30% opacity
-                                outline: true,
-                                outlineColor: Cesium.Color.YELLOW,
-                            outlineWidth: 3,
-                                height: 0,
-                            extrudedHeight: 5, // 5 meter height
-                                closeTop: true,
-                                closeBottom: true,
-                            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-                            show: true, // Explicitly set show to true
-                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE), // Always visible
-                            classificationType: Cesium.ClassificationType.BOTH, // Render on both terrain and 3D tiles
-                            shadows: Cesium.ShadowMode.DISABLED, // Disable shadows to prevent rendering issues
-                            perPositionHeight: false // Use constant height
-                        };
-
-                        // Special configuration for first 3 hazards that aren't showing
-                        if (props.hazard_id === 'H1' || props.hazard_id === 'H2' || props.hazard_id === 'H3') {
-                            console.log(`Using special polygon config for ${props.hazard_id}`);
-                            polygonConfig = {
-                                hierarchy: positions,
-                                material: Cesium.Color.RED.withAlpha(0.5), // Higher opacity for visibility
-                                outline: true,
-                                outlineColor: Cesium.Color.YELLOW,
-                                outlineWidth: 5, // Thicker outline
-                                height: 0,
-                                extrudedHeight: 10, // Higher extrusion
-                                closeTop: true,
-                                closeBottom: true,
-                                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-                                show: true,
-                                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE),
-                                classificationType: Cesium.ClassificationType.TERRAIN, // Only terrain
-                                shadows: Cesium.ShadowMode.DISABLED,
-                                perPositionHeight: false
-                            };
-                        }
-
-                        const polygonEntity = this.viewer.entities.add({
-                            id: `hazard-polygon-${props.hazard_id}`,
-                            name: props.display_name,
-                            polygon: polygonConfig,
-                            properties: {
-                                hazardData: props
-                            },
-                            show: true // Also set show on the entity itself
-                        });
-
-                        // Calculate centroid if not available
-                        let centroid = props.centroid;
-                        if (!centroid || !Array.isArray(centroid) || centroid.length < 2) {
                             // Calculate centroid from polygon coordinates
                             const lons = validCoords.map(coord => coord[0]);
                             const lats = validCoords.map(coord => coord[1]);
                             const avgLon = lons.reduce((sum, lon) => sum + lon, 0) / lons.length;
                             const avgLat = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
-                            centroid = [avgLon, avgLat];
-                        }
+                    const centroid = [avgLon, avgLat];
+                    
+                    // Store centroid for navigation
+                    props.centroid = centroid;
+                    props.coordinates = validCoords;
 
-                        // Create pin marker entity positioned above the polygon
-                        const pinEntity = this.viewer.entities.add({
+                    console.log(`[HazardGeom] Rendering hazard ${props.hazard_id}: ${props.display_name}`);
+                    console.log(`[HazardGeom] Centroid: ${avgLat.toFixed(6)}, ${avgLon.toFixed(6)}`);
+
+                    // Create elevated pin marker - NO POLYGONS, PINS ONLY
+                    pinEntity = this.viewer.entities.add({
                             id: `hazard-pin-${props.hazard_id}`,
                             name: `${props.display_name} - Pin`,
                             position: Cesium.Cartesian3.fromDegrees(
                                 centroid[0], 
                                 centroid[1], 
-                                10 // 10 meters above ground (reduced from 50m)
+                            1000 // 1000 meters above ground - high enough to be visible above 3D tiles
                             ),
                             billboard: {
                                 image: './src/assets/icons/MapPin02.png',
-                                scale: 0.4, // Split difference between 0.5 and 0.3
+                            scale: 0.5,
                                 verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-                                scaleByDistance: new Cesium.NearFarScalar(1000, 0.4, 10000, 0.2) // Adjusted scaling
+                            heightReference: Cesium.HeightReference.ABSOLUTE,
+                            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                            scaleByDistance: new Cesium.NearFarScalar(1000, 0.5, 10000, 0.3),
+                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE)
                             },
                             properties: {
                                 hazardData: props
                             }
                         });
 
-                        // Create separate label entity positioned to the right of the pin
+                    // Create elevated label
                         const labelEntity = this.viewer.entities.add({
                             id: `hazard-label-${props.hazard_id}`,
                             name: `${props.display_name} - Label`,
                             position: Cesium.Cartesian3.fromDegrees(
-                                centroid[0] + 0.0002, // Closer to the pin (about 20m to the right)
-                                centroid[1] + 0.0001, // Slightly up (about 10m north)
-                                20 // Higher than the pin
+                            centroid[0] + 0.0003, // Further to the right (about 30m)
+                            centroid[1] + 0.0002, // Further up (about 20m north)
+                            1020 // Higher than the pin - 1000m + 20m offset
                             ),
                             label: {
                     text: (() => {
@@ -2301,8 +2476,8 @@
                         if (labelText === 'Legacy burn Pit') {
                             labelText = 'Legacy Burn Pit';
                         }
-                        // Special case for Municiapl water system to display as Municipal Water System
-                        if (labelText === 'Municiapl water system') {
+                                // Special case for Municipal water system to display as Municipal Water System
+                                if (labelText === 'Municipal water system') {
                             labelText = 'Municipal Water System';
                         }
                         // Special case for 'arthropod Vectors to display as Arthropod Vectors
@@ -2333,53 +2508,39 @@
                                 outlineWidth: 3,
                                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
                                 scale: 1.0,
-                                scaleByDistance: new Cesium.NearFarScalar(100, 1.2, 2000, 0.8),
-                                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 25000.0),
-                                show: true,
                                 disableDepthTestDistance: Number.POSITIVE_INFINITY,
                                 backgroundColor: Cesium.Color.WHITE.withAlpha(0.95),
                                 backgroundPadding: new Cesium.Cartesian2(12, 6),
                                 showBackground: true,
                                 horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
                                 verticalOrigin: Cesium.VerticalOrigin.CENTER,
-                                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND
+                            heightReference: Cesium.HeightReference.ABSOLUTE,
+                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, Number.MAX_VALUE)
                             },
                             properties: {
                                 hazardData: props
                             }
                         });
 
-                    console.log(`Created polygon entity for ${props.hazard_id}:`, polygonEntity);
-                    console.log(`Polygon positions:`, positions);
-                    console.log(`Polygon color:`, props.color);
-                    console.log(`Polygon show property:`, polygonEntity.show);
-                    console.log(`Polygon polygon.show property:`, polygonEntity.polygon.show);
-                    
-                    // Special debugging for hazards 1, 2, and 3
-                    if (props.hazard_id === 'H1' || props.hazard_id === 'H2' || props.hazard_id === 'H3') {
-                        console.log(`=== SPECIAL DEBUG FOR ${props.hazard_id} ===`);
-                        console.log(`Entity ID: ${polygonEntity.id}`);
-                        console.log(`Entity name: ${polygonEntity.name}`);
-                        console.log(`Entity show: ${polygonEntity.show}`);
-                        console.log(`Polygon show: ${polygonEntity.polygon.show}`);
-                        console.log(`Polygon material: ${polygonEntity.polygon.material}`);
-                        console.log(`Polygon hierarchy: ${polygonEntity.polygon.hierarchy}`);
-                        console.log(`Polygon positions count: ${positions.length}`);
-                        console.log(`First position: ${positions[0]}`);
-                        console.log(`Last position: ${positions[positions.length - 1]}`);
-                        console.log(`Pin entity: ${pinEntity}`);
-                        console.log(`Pin show: ${pinEntity ? pinEntity.show : 'N/A'}`);
-                        console.log(`Pin position: ${pinEntity ? pinEntity.position : 'N/A'}`);
-                        console.log(`=== END SPECIAL DEBUG ===`);
-                    }
-
-                    // Add click handlers for both polygon and pin
-                    this.addHazardClickHandlers(polygonEntity, pinEntity, props);
+                    // Removed obsolete polygon debug logs
 
                     console.log(`Successfully created hazard ${index}: ${props.hazard_id}`);
 
                 } catch (error) {
                     console.error(`Error rendering hazard feature ${index}:`, error);
+                    console.error(`Error details:`, error.message, error.stack);
+                }
+                
+                // Add click handlers for pin only (no polygon) - OUTSIDE try-catch
+                if (pinEntity) {
+                    try {
+                        this.addHazardClickHandlers(null, pinEntity, props);
+                        console.log(`Click handler attached for hazard ${index}: ${props.hazard_id}`);
+                    } catch (error) {
+                        console.error(`Error attaching click handler for hazard ${index}:`, error);
+                    }
+                } else {
+                    console.error(`No pin entity created for hazard ${index}: ${props.hazard_id}`);
                 }
             }
 
@@ -2420,38 +2581,25 @@
             }
 
             addHazardClickHandlers(polygonEntity, pinEntity, props) {
-                // Add click handler for both polygon and pin
+                // Add click handler for pin only (polygons removed)
                 const clickHandler = (clickedEntity) => {
+                    console.log(`[HazardNav] Clicked on hazard: ${props.hazard_id}`);
+                    
                     // Stop proximity checking during zoom to prevent flashing
                     this.stopProximityCheck();
                     
                     this.showHazardInfo(props, clickedEntity, false);
                     
-                    // Log pin coordinates if it's a pin
-                    if (clickedEntity.id && clickedEntity.id.includes('pin')) {
-                        const pinPosition = clickedEntity.position.getValue(Cesium.JulianDate.now());
-                        if (pinPosition) {
-                            // Convert Cartesian3 to lat/lon
-                            const cartographic = Cesium.Cartographic.fromCartesian(pinPosition);
-                            const lat = Cesium.Math.toDegrees(cartographic.latitude);
-                            const lon = Cesium.Math.toDegrees(cartographic.longitude);
-                            console.log(`Pin coordinates for ${props.hazard_type}:`);
-                            console.log(`  Latitude: ${lat.toFixed(6)}°N`);
-                            console.log(`  Longitude: ${lon.toFixed(6)}°W`);
-                            console.log(`  Cartesian3: x=${pinPosition.x.toFixed(2)}, y=${pinPosition.y.toFixed(2)}, z=${pinPosition.z.toFixed(2)}`);
-                        } else {
-                            console.log('Pin position not available');
-                        }
-                    }
-                    
                     // Zoom to the clicked hazard
                     this.zoomToHazard(clickedEntity, props);
                 };
 
-                // Store click handler for polygon
+                // Store click handler for polygon (if exists)
+                if (polygonEntity) {
                 polygonEntity.clickHandler = clickHandler;
+                }
                 
-                // Store click handler for pin if it exists
+                // Store click handler for pin (always exists)
                 if (pinEntity) {
                     pinEntity.clickHandler = clickHandler;
                 }
@@ -2512,8 +2660,8 @@
                         const lon = Cesium.Math.toDegrees(cartographic.longitude);
                         console.log('Entity location (lat/lon):', lat.toFixed(6) + '°N, ' + lon.toFixed(6) + '°W');
                         
-                        // Use lat/lon coordinates with overhead view
-                        const height = 2500; // Camera height for hazard viewing
+                        // Use lat/lon coordinates with overhead view - adjusted for elevated pins
+                        const height = Math.max(1500, 2500); // Minimum 1500m for elevated pins
                         console.log('Creating target position with lat/lon:', lat.toFixed(6), lon.toFixed(6), `height: ${height}m`);
                         const targetPosition = Cesium.Cartesian3.fromDegrees(lon, lat, height);
                         console.log('Target position created:', targetPosition);
@@ -2711,14 +2859,21 @@
                 console.log('Hazard data:', this.hazardData);
                 
                 if (!this.hazardData || this.hazardData.length === 0) {
-                    console.log('No hazard data available for navigation');
+                    console.error('No hazard data available for navigation');
                     return;
                 }
                 
                 // Stop proximity checking during navigation to prevent interference
                 this.stopProximityCheck();
                 
+                // Ensure currentHazardIndex is valid
+                if (this.currentHazardIndex < 0 || this.currentHazardIndex >= this.hazardData.length) {
+                    console.log('Invalid currentHazardIndex, resetting to 0');
+                    this.currentHazardIndex = 0;
+                }
+                
                 // Update current index
+                const oldIndex = this.currentHazardIndex;
                 this.currentHazardIndex += direction;
                 
                 // Wrap around
@@ -2728,59 +2883,62 @@
                     this.currentHazardIndex = 0;
                 }
                 
-                console.log('New index:', this.currentHazardIndex);
+                console.log('Navigation: Index changed from', oldIndex, 'to', this.currentHazardIndex);
                 
                 // Get current hazard data
                 const currentHazard = this.hazardData[this.currentHazardIndex];
                 console.log('Current hazard:', currentHazard);
                 
-                // Update counter
+                if (!currentHazard) {
+                    console.error('No hazard found at index:', this.currentHazardIndex);
+                    return;
+                }
+                
+                // Update counter - use actual hazard ID number instead of index
                 const counterElement = document.getElementById('hazardCounter');
-                if (counterElement) {
-                    counterElement.textContent = `${this.currentHazardIndex + 1} of ${this.hazardData.length}`;
+                if (counterElement && currentHazard) {
+                    // Extract number from hazard_id (e.g., "H3" -> 3)
+                    const hazardIdNum = parseInt(currentHazard.properties.hazard_id.replace('H', '')) || (this.currentHazardIndex + 1);
+                    counterElement.textContent = `${hazardIdNum} of ${this.hazardData.length}`;
                 }
                 
-                // Find and zoom to the hazard entity
+                // Find and zoom to the hazard entity (pins only now)
                 const hazardId = currentHazard.properties.hazard_id;
-                console.log('Looking for entity with ID:', `hazard-polygon-${hazardId}`);
+                console.log('Looking for entity with ID:', `hazard-pin-${hazardId}`);
                 
-                // Try multiple ways to find the polygon entity
-                let polygonEntity = this.viewer.entities.getById(`hazard-polygon-${hazardId}`);
+                // Look for pin entity instead of polygon
+                let pinEntity = this.viewer.entities.getById(`hazard-pin-${hazardId}`);
                 
-                if (!polygonEntity) {
+                if (!pinEntity) {
                     // Try alternative ID format
-                    polygonEntity = this.viewer.entities.getById(`hazard-polygon-H${hazardId.replace('H', '')}`);
+                    pinEntity = this.viewer.entities.getById(`hazard-pin-H${hazardId.replace('H', '')}`);
                 }
                 
-                if (!polygonEntity) {
-                    // Search through all entities to find matching polygon
+                if (!pinEntity) {
+                    // Search through all entities to find matching pin
                     const allEntities = this.viewer.entities.values;
-                    polygonEntity = allEntities.find(entity => 
-                        entity.id && entity.id.includes('polygon') && entity.id.includes(hazardId)
+                    pinEntity = allEntities.find(entity => 
+                        entity.id && entity.id.includes('pin') && entity.id.includes(hazardId)
                     );
                 }
                 
-                console.log('Found polygon entity:', polygonEntity);
+                console.log('Found pin entity:', pinEntity);
                 
-                // Update info box - use polygonEntity for info display, but don't start proximity check yet
-                this.showHazardInfo(currentHazard.properties, polygonEntity, false);
-                
-                // For proximity checking, we need an entity with a position (pin entity)
-                const pinEntity = this.viewer.entities.getById(`hazard-pin-${hazardId}`);
-                if (pinEntity) {
+                // Update info box and set current entity
+                this.showHazardInfo(currentHazard.properties, pinEntity, false);
                     this.currentHazardEntity = pinEntity;
-                } else {
-                    this.currentHazardEntity = polygonEntity; // Fallback to polygon entity
-                }
                 
                 // Zoom to the current hazard
-                if (polygonEntity) {
-                    this.zoomToHazard(polygonEntity, currentHazard.properties);
+                if (pinEntity) {
+                    this.zoomToHazard(pinEntity, currentHazard.properties);
                 } else {
+                    console.log('No pin entity found, using coordinate fallback');
                     // Fallback: zoom to coordinates if entity not found
                     const coordinates = currentHazard.geometry.coordinates[0];
                     if (coordinates && coordinates.length > 0) {
                         this.zoomToHazardCoordinates(coordinates, currentHazard.properties);
+                    } else {
+                        console.error('No coordinates available for hazard:', currentHazard.properties.display_name);
                     }
                 }
             }
@@ -2792,19 +2950,27 @@
                 console.log('Props:', props);
                 
                 try {
-                    // Calculate center of polygon
+                    // Calculate center of polygon (coordinates are already in WGS84)
                     let centerLat = 0;
                     let centerLon = 0;
+                    let validCoords = 0;
                     
                     coordinates.forEach(coord => {
+                        if (Array.isArray(coord) && coord.length >= 2 && !isNaN(coord[0]) && !isNaN(coord[1])) {
                         centerLon += coord[0];
                         centerLat += coord[1];
+                            validCoords++;
+                        }
                     });
                     
-                    centerLon /= coordinates.length;
-                    centerLat /= coordinates.length;
-                    
+                    if (validCoords > 0) {
+                        centerLon /= validCoords;
+                        centerLat /= validCoords;
                     console.log('Calculated center:', centerLat.toFixed(6), centerLon.toFixed(6));
+                    } else {
+                        console.error('No valid coordinates found for fallback zoom');
+                        return;
+                    }
                     
                     // Create target position
                     const height = 2500;
@@ -2927,36 +3093,18 @@
                 let closestHazard = null;
                 let closestDistance = Infinity;
 
-                // Check all hazard entities to find the closest one
+                // Check all hazard entities to find the closest one (pins only now)
                 this.viewer.entities.values.forEach(entity => {
-                    if (entity.id && entity.id.startsWith('hazard-polygon-')) {
-                        let hazardPosition = null;
-
-                        // Get hazard position (try different methods)
+                    if (entity.id && entity.id.startsWith('hazard-pin-')) {
+                        // Get hazard position from pin
                         if (entity.position && typeof entity.position.getValue === 'function') {
-                            hazardPosition = entity.position.getValue(Cesium.JulianDate.now());
-                        } else if (entity.polygon && entity.polygon.hierarchy) {
-                            const hierarchy = entity.polygon.hierarchy.getValue(Cesium.JulianDate.now());
-                            if (hierarchy && hierarchy.positions && hierarchy.positions.length > 0) {
-                                // Calculate center of polygon
-                                let centerX = 0, centerY = 0, centerZ = 0;
-                                hierarchy.positions.forEach(pos => {
-                                    centerX += pos.x;
-                                    centerY += pos.y;
-                                    centerZ += pos.z;
-                                });
-                                centerX /= hierarchy.positions.length;
-                                centerY /= hierarchy.positions.length;
-                                centerZ /= hierarchy.positions.length;
-                                hazardPosition = new Cesium.Cartesian3(centerX, centerY, centerZ);
-                            }
-                        }
-
+                            const hazardPosition = entity.position.getValue(Cesium.JulianDate.now());
                         if (hazardPosition) {
                             const distance = Cesium.Cartesian3.distance(cameraPosition, hazardPosition);
                             if (distance < closestDistance) {
                                 closestDistance = distance;
                                 closestHazard = entity;
+                                }
                             }
                         }
                     }
@@ -2965,7 +3113,7 @@
                 // If we found a hazard within range, show its info
                 if (closestHazard && closestDistance <= this.fadeDistance) {
                     // Extract hazard ID from entity ID
-                    const hazardId = closestHazard.id.replace('hazard-polygon-', '');
+                    const hazardId = closestHazard.id.replace('hazard-pin-', '');
                     
                     // Find the corresponding hazard data
                     const hazardData = this.hazardData.find(h => h.properties.hazard_id === hazardId);
@@ -3027,6 +3175,14 @@
                         }
                     }
                     
+                    // Update counter - use actual hazard ID number instead of index
+                    const counterElement = document.getElementById('hazardCounter');
+                    if (counterElement && this.hazardData && this.hazardData.length > 0) {
+                        // Extract number from hazard_id (e.g., "H3" -> 3)
+                        const hazardIdNum = parseInt(props.hazard_id.replace('H', '')) || (this.currentHazardIndex + 1);
+                        counterElement.textContent = `${hazardIdNum} of ${this.hazardData.length}`;
+                    }
+                    
                     // Update click info box
                     const clickInfoBox = document.getElementById('clickInfoBox');
                     if (clickInfoBox) {
@@ -3048,7 +3204,7 @@
                             displayTitle = 'Field Water System';
                         } else if (displayTitle === 'Legacy burn Pit') {
                             displayTitle = 'Legacy Burn Pit';
-                        } else if (displayTitle === 'Municiapl water system') {
+                        } else if (displayTitle === 'Municipal water system') {
                             displayTitle = 'Municipal Water System';
                         } else if (displayTitle === "'arthropod Vectors") {
                             displayTitle = 'Arthropod Vectors';
@@ -3103,10 +3259,7 @@
                         clickInfoBox.classList.remove('hidden');
                     }
                     
-                    // Populate CSM form with hazard data
-                    if (window.csmFormManager) {
-                        window.csmFormManager.populateFromMapData(props);
-                    }
+                    // CSM form population removed - only happens when "Add Hazard" button is clicked
                 }
 
 
@@ -3145,7 +3298,7 @@
                             exposureRoute: "Inhalation, Dermal",
                             populationAffected: "Nearby Housing",
                             existingControls: "Fence, ash cap",
-                            freqDuration: "Seasonal wind",
+                            freqDuration: "Legacy source",
                             severity: "Critical (II)",
                             probability: "Likely (B)",
                             risk: "High"
@@ -3163,7 +3316,7 @@
                             risk: "Extremely High"
                         },
                         5: {
-                            source: "Municiapl water system",
+                            source: "Municipal water system",
                             environmentalMedium: "Surface Water",
                             healthThreat: "Pathogens, nutrients",
                             exposureRoute: "Ingestion, Dermal",
@@ -3217,7 +3370,7 @@
                             exposureRoute: "Ingestion",
                             populationAffected: "Aquatic life, public",
                             existingControls: "Stormwater BMPs",
-                            freqDuration: "Winter season",
+                            freqDuration: "Daily/8hrs",
                             severity: "Marginal (III)",
                             probability: "Occasional (C)",
                             risk: "Moderate"
@@ -3325,7 +3478,7 @@
                             exposureRoute: "Dermal, Inhalation",
                             populationAffected: "Lab staff",
                             existingControls: "SOPs, eyewash",
-                            freqDuration: "Daily/8 hrs",
+                            freqDuration: "Weekly",
                             severity: "Critical (II)",
                             probability: "Occasional (C)",
                             risk: "High"
@@ -3427,7 +3580,7 @@
                         'Aircraft Fuel Tanks': hazardDetails[2],
                         'Legacy burn Pit': hazardDetails[3],
                         'Welding Shop': hazardDetails[4],
-                        'Municiapl water system': hazardDetails[5],
+                        'Municipal water system': hazardDetails[5],
                         'Fuel truck refueling': hazardDetails[8],
                         'Forest Fire': hazardDetails[6],
                         'CATM Range': hazardDetails[7],
@@ -3489,6 +3642,364 @@
                 this.addInitialRow();
                 this.setupScrollListener();
                 this.lastComparisonResults = null;
+            }
+
+            getDetailedHazardInfo(props) {
+                // Map hazard names to detailed BEO CSM information from Excel data
+                // Note: Detailed data comes from BEO OEHSA CSM Injects.xlsx file
+                const hazardDetails = {
+                    1: {
+                        source: "Engine Testing Pad1",
+                        environmentalMedium: "Auditory",
+                        healthThreat: "Noise-Induced Hearing Loss",
+                        exposureRoute: "Auditory",
+                        populationAffected: "Flightline Maintainers",
+                        existingControls: "HPDs, duty limits",
+                        freqDuration: "Daily/8hrs",
+                        severity: "Critical (II)",
+                        probability: "Frequent (A)",
+                        risk: "Extremely High"
+                    },
+                    2: {
+                        source: "Aircraft Fuel Tanks",
+                        environmentalMedium: "Soil/Groundwater",
+                        healthThreat: "Benzene exposure",
+                        exposureRoute: "Inhalation, Dermal",
+                        populationAffected: "Firefighters, POL",
+                        existingControls: "Secondary containment",
+                        freqDuration: "Daily/8 hrs",
+                        severity: "Marginal (III)",
+                        probability: "Occasional (C)",
+                        risk: "Moderate"
+                    },
+                    3: {
+                        source: "Legacy burn Pit",
+                        environmentalMedium: "Soil/Air",
+                        healthThreat: "Dioxins/PM",
+                        exposureRoute: "Inhalation, Dermal",
+                        populationAffected: "Nearby Housing",
+                        existingControls: "Fence, ash cap",
+                        freqDuration: "Seasonal wind",
+                        severity: "Critical (II)",
+                        probability: "Likely (B)",
+                        risk: "High"
+                    },
+                    4: {
+                        source: "Welding Shop",
+                        environmentalMedium: "Air",
+                        healthThreat: "Manganese/Cr6+",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Fabricators",
+                        existingControls: "LEV, PPE, IH surveys",
+                        freqDuration: "Weekly",
+                        severity: "Critical (II)",
+                        probability: "Frequent (A)",
+                        risk: "Extremely High"
+                    },
+                    5: {
+                        source: "Municipal water system",
+                        environmentalMedium: "Surface Water",
+                        healthThreat: "Pathogens, nutrients",
+                        exposureRoute: "Ingestion, Dermal",
+                        populationAffected: "Downstream community",
+                        existingControls: "Chlorination, signage",
+                        freqDuration: "Continuous",
+                        severity: "Critical (II)",
+                        probability: "Seldom (D)",
+                        risk: "Moderate"
+                    },
+                    6: {
+                        source: "Forest Fire",
+                        environmentalMedium: "Air",
+                        healthThreat: "PM2.5",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "All base population",
+                        existingControls: "AQI alerts",
+                        freqDuration: "Annual",
+                        severity: "Critical (II)",
+                        probability: "Occasional (C)",
+                        risk: "High"
+                    },
+                    7: {
+                        source: "CATM Range",
+                        environmentalMedium: "Soil",
+                        healthThreat: "Lead, noise",
+                        exposureRoute: "Inhalation, Ingestion",
+                        populationAffected: "Instructors, trainees",
+                        existingControls: "PPE, HEPA vacs",
+                        freqDuration: "Daily",
+                        severity: "Critical (II)",
+                        probability: "Frequent (A)",
+                        risk: "Extremely High"
+                    },
+                    8: {
+                        source: "Fuel truck refueling",
+                        environmentalMedium: "Air",
+                        healthThreat: "VOC vapor, spills",
+                        exposureRoute: "Inhalation, Dermal",
+                        populationAffected: "POL, Drivers",
+                        existingControls: "SOPs, spill kits",
+                        freqDuration: "Daily/8 hrs",
+                        severity: "Critical (II)",
+                        probability: "Likely (B)",
+                        risk: "High"
+                    },
+                    9: {
+                        source: "Feild Water System",
+                        environmentalMedium: "Surface Water",
+                        healthThreat: "Propylene glycol",
+                        exposureRoute: "Ingestion",
+                        populationAffected: "Aquatic life, public",
+                        existingControls: "Stormwater BMPs",
+                        freqDuration: "Winter season",
+                        severity: "Marginal (III)",
+                        probability: "Occasional (C)",
+                        risk: "Moderate"
+                    },
+                    10: {
+                        source: "Warehouse",
+                        environmentalMedium: "Indoor Air",
+                        healthThreat: "Mold, dust",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Logistics workers",
+                        existingControls: "Dehumidifiers, filters",
+                        freqDuration: "Variable",
+                        severity: "Marginal (III)",
+                        probability: "Occasional (C)",
+                        risk: "Moderate"
+                    },
+                    11: {
+                        source: "Cryogenics Shop",
+                        environmentalMedium: "Indoor Air",
+                        healthThreat: "Asphyxiation",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Cryo techs",
+                        existingControls: "Monitors, ventilation",
+                        freqDuration: "Weekly tasks",
+                        severity: "Catastrophic (I)",
+                        probability: "Seldom (D)",
+                        risk: "High"
+                    },
+                    12: {
+                        source: "Histoic Landfill",
+                        environmentalMedium: "Groundwater",
+                        healthThreat: "Leachate (VOCs, metals)",
+                        exposureRoute: "Ingestion",
+                        populationAffected: "Community well users",
+                        existingControls: "Monitoring wells",
+                        freqDuration: "Dry Season",
+                        severity: "Critical (II)",
+                        probability: "Seldom (D)",
+                        risk: "Moderate"
+                    },
+                    13: {
+                        source: "Battery Storage",
+                        environmentalMedium: "Air/Surface",
+                        healthThreat: "Acid mist, Pb dust",
+                        exposureRoute: "Dermal, Inhalation",
+                        populationAffected: "Civil Engineers",
+                        existingControls: "PPE, vent hoods",
+                        freqDuration: "Daily/8hrs",
+                        severity: "Marginal (III)",
+                        probability: "Occasional (C)",
+                        risk: "Moderate"
+                    },
+                    14: {
+                        source: "Satellite Comms Dish",
+                        environmentalMedium: "Radiation",
+                        healthThreat: "RF hazard",
+                        exposureRoute: "External",
+                        populationAffected: "Comm technicians",
+                        existingControls: "Time-distance-shielding",
+                        freqDuration: "Weekly",
+                        severity: "Marginal (III)",
+                        probability: "Seldom (D)",
+                        risk: "Low"
+                    },
+                    15: {
+                        source: "Pest Control",
+                        environmentalMedium: "Surfaces",
+                        healthThreat: "Pesticide residues",
+                        exposureRoute: "Dermal, Inhalation",
+                        populationAffected: "Shoppers, workers",
+                        existingControls: "SOPs, notifications",
+                        freqDuration: "Monthly",
+                        severity: "Marginal (III)",
+                        probability: "Seldom (D)",
+                        risk: "Low"
+                    },
+                    16: {
+                        source: "Gym Sauna",
+                        environmentalMedium: "Air",
+                        healthThreat: "Mold spores, heat stress",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Athletes",
+                        existingControls: "Time limits, cleaning",
+                        freqDuration: "Daily",
+                        severity: "Negligible (IV)",
+                        probability: "Frequent (A)",
+                        risk: "Moderate"
+                    },
+                    17: {
+                        source: "Paint Shop",
+                        environmentalMedium: "Air",
+                        healthThreat: "Toluene, xylene",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Painters",
+                        existingControls: "LEV, cartridge masks",
+                        freqDuration: "Weekly",
+                        severity: "Critical (II)",
+                        probability: "Likely (B)",
+                        risk: "High"
+                    },
+                    18: {
+                        source: "Chemical Lab",
+                        environmentalMedium: "Surfaces",
+                        healthThreat: "Corrosives, toxics",
+                        exposureRoute: "Dermal, Inhalation",
+                        populationAffected: "Lab staff",
+                        existingControls: "SOPs, eyewash",
+                        freqDuration: "Daily/8 hrs",
+                        severity: "Critical (II)",
+                        probability: "Occasional (C)",
+                        risk: "High"
+                    },
+                    19: {
+                        source: "Mechanical Shop",
+                        environmentalMedium: "Air/Surfaces",
+                        healthThreat: "Solvent vapors",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Maintainers",
+                        existingControls: "LEV, respirators",
+                        freqDuration: "Daily",
+                        severity: "Marginal (III)",
+                        probability: "Occasional (C)",
+                        risk: "Moderate"
+                    },
+                    20: {
+                        source: "Gate Area",
+                        environmentalMedium: "Air",
+                        healthThreat: "CO, particulates",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Commuters, gate guards",
+                        existingControls: "Vehicle standards",
+                        freqDuration: "Constant",
+                        severity: "Marginal (III)",
+                        probability: "Frequent (A)",
+                        risk: "High"
+                    },
+                    21: {
+                        source: "Feild Training Area",
+                        environmentalMedium: "Soil/Dust",
+                        healthThreat: "Valley fever (fungal spores)",
+                        exposureRoute: "Inhalation",
+                        populationAffected: "Trainees",
+                        existingControls: "Watering, timing",
+                        freqDuration: "Dry season",
+                        severity: "Critical (II)",
+                        probability: "Seldom (D)",
+                        risk: "Moderate"
+                    },
+                    22: {
+                        source: "Medical X ray",
+                        environmentalMedium: "Radiation",
+                        healthThreat: "Ionizing radiation",
+                        exposureRoute: "External",
+                        populationAffected: "Staff, patients",
+                        existingControls: "Shielding, badges",
+                        freqDuration: "Daily",
+                        severity: "Critical (II)",
+                        probability: "Unlikely (E)",
+                        risk: "Low"
+                    },
+                    23: {
+                        source: "HazMat Storage Area",
+                        environmentalMedium: "Soil/Surfaces",
+                        healthThreat: "Drip leaks",
+                        exposureRoute: "Dermal",
+                        populationAffected: "CE, HAZWASTE",
+                        existingControls: "Spill pallets",
+                        freqDuration: "Daily/8 hrs",
+                        severity: "Marginal (III)",
+                        probability: "Seldom (D)",
+                        risk: "Low"
+                    },
+                    24: {
+                        source: "Municipal Water Supply",
+                        environmentalMedium: "Surface Water",
+                        healthThreat: "Pathogens, nutrients",
+                        exposureRoute: "Ingestion, Dermal",
+                        populationAffected: "Downstream community",
+                        existingControls: "Chlorination, signage",
+                        freqDuration: "Continuous",
+                        severity: "Critical (II)",
+                        probability: "Seldom (D)",
+                        risk: "Moderate"
+                    },
+                    25: {
+                        source: "'arthropod Vectors",
+                        environmentalMedium: "Air/Biological",
+                        healthThreat: "Vector-borne disease",
+                        exposureRoute: "Insect bites",
+                        populationAffected: "Outdoor personnel",
+                        existingControls: "Repellent, Bti spray",
+                        freqDuration: "Summer",
+                        severity: "Critical (II)",
+                        probability: "Occasional (C)",
+                        risk: "High"
+                    }
+                };
+
+                // Get the hazard name from props (this comes from the GeoJSON Name field)
+                const hazardName = props.display_name || props.hazard_type || props.Name;
+                
+                // Map hazard names to detailed info
+                const nameToDetails = {
+                    'Gate Area': hazardDetails[20],
+                    'Gym Sauna': hazardDetails[16],
+                    'Engine Testing Pad1': hazardDetails[1],
+                    'Aircraft Fuel Tanks': hazardDetails[2],
+                    'Legacy burn Pit': hazardDetails[3],
+                    'Welding Shop': hazardDetails[4],
+                    'Municipal water system': hazardDetails[5],
+                    'Fuel truck refueling': hazardDetails[8],
+                    'Forest Fire': hazardDetails[6],
+                    'CATM Range': hazardDetails[7],
+                    'Feild Water System': hazardDetails[9],
+                    'Warehouse': hazardDetails[10],
+                    'Histoic Landfill': hazardDetails[12],
+                    'Cryogenics Shop': hazardDetails[11],
+                    'Medical X ray': hazardDetails[22],
+                    'Feild Training Area': hazardDetails[21],
+                    'Battery Storage': hazardDetails[13],
+                    'Satellite Comms Dish': hazardDetails[14],
+                    'Pest Control': hazardDetails[15],
+                    'Paint Shop': hazardDetails[17],
+                    'Chemical Lab': hazardDetails[18],
+                    'Mechanical Shop': hazardDetails[19],
+                    'HazMat Storage Area': hazardDetails[23],
+                    'Municipal Water Supply': hazardDetails[24],
+                    "'arthropod Vectors": hazardDetails[25]
+                };
+                
+                // Return detailed info if available, otherwise use props
+                if (nameToDetails[hazardName]) {
+                    return nameToDetails[hazardName];
+                } else {
+                    // Fallback to original props with new structure
+                    return {
+                        source: props.display_name || props.hazard_type || 'Unknown Hazard',
+                        environmentalMedium: props.environmental_medium || 'Unknown',
+                        healthThreat: 'Assessment required',
+                        exposureRoute: 'Assessment required',
+                        populationAffected: 'Assessment required',
+                        existingControls: 'Assessment required',
+                        freqDuration: 'Assessment required',
+                        severity: 'Assessment required',
+                        probability: 'Assessment required',
+                        risk: 'Assessment required'
+                    };
+                }
             }
 
             normalizeValue(value) {
@@ -3903,6 +4414,31 @@
                 this.hazardRows.push(newRow);
                 this.renderRows();
                 this.scrollToBottom();
+
+                // Auto-populate the new row with current hazard data if available
+                this.autoPopulateNewRow(newRow);
+            }
+
+            autoPopulateNewRow(newRow) {
+                // Get the current hazard from the map application
+                if (window.app && window.app.currentHazardEntity) {
+                    const currentHazardProps = window.app.currentHazardEntity.properties;
+                    if (currentHazardProps && currentHazardProps.hazardData) {
+                        console.log('[CSM] Auto-populating new row with current hazard data');
+                        
+                        // Only populate the source field if it's empty (new row should be empty)
+                        if (!newRow.source || newRow.source.trim() === '') {
+                            newRow.source = currentHazardProps.hazardData.display_name || currentHazardProps.hazardData.hazard_type || '';
+                            
+                            // Update the form fields immediately
+                            this.updateFormFields(newRow);
+                            
+                            console.log('[CSM] New row auto-populated with hazard source:', newRow.source);
+                        } else {
+                            console.log('[CSM] New row already has source value, not overriding:', newRow.source);
+                        }
+                    }
+                }
             }
 
             renderRows(showAll = false) {
@@ -3944,31 +4480,16 @@
                         <td><input type="text" data-field="hazardId" data-index="${index}" value="${row.hazardId}" readonly style="width: 100%; border: none; background: #f8f9fa; font-size: 14px; padding: 3px; text-align: center; font-weight: bold;"></td>
                         <td><select data-field="source" data-index="${index}">
                             <option value="">Select Source</option>
-                            <option value="Aircraft fuel tanks" ${row.source === 'Aircraft fuel tanks' ? 'selected' : ''}>Aircraft fuel tanks</option>
                             <option value="Arthropod Vectors" ${row.source === 'Arthropod Vectors' ? 'selected' : ''}>Arthropod Vectors</option>
-                            <option value="Battery Storage" ${row.source === 'Battery Storage' ? 'selected' : ''}>Battery Storage</option>
                             <option value="CATM Range" ${row.source === 'CATM Range' ? 'selected' : ''}>CATM Range</option>
-                            <option value="Chemical Lab" ${row.source === 'Chemical Lab' ? 'selected' : ''}>Chemical Lab</option>
-                            <option value="Cryogenics Shop" ${row.source === 'Cryogenics Shop' ? 'selected' : ''}>Cryogenics Shop</option>
                             <option value="Field Training Area" ${row.source === 'Field Training Area' ? 'selected' : ''}>Field Training Area</option>
-                            <option value="Field Water System" ${row.source === 'Field Water System' ? 'selected' : ''}>Field Water System</option>
-                            <option value="Forest Fire" ${row.source === 'Forest Fire' ? 'selected' : ''}>Forest Fire</option>
-                            <option value="Fuel truck refueling" ${row.source === 'Fuel truck refueling' ? 'selected' : ''}>Fuel truck refueling</option>
                             <option value="Gate Area" ${row.source === 'Gate Area' ? 'selected' : ''}>Gate Area</option>
-                            <option value="Gym Sauna" ${row.source === 'Gym Sauna' ? 'selected' : ''}>Gym Sauna</option>
-                            <option value="HazMat Storage Area" ${row.source === 'HazMat Storage Area' ? 'selected' : ''}>HazMat Storage Area</option>
                             <option value="Historic Landfill" ${row.source === 'Historic Landfill' ? 'selected' : ''}>Historic Landfill</option>
                             <option value="Jet engine testing pad" ${row.source === 'Jet engine testing pad' ? 'selected' : ''}>Jet engine testing pad</option>
                             <option value="Legacy burn pit" ${row.source === 'Legacy burn pit' ? 'selected' : ''}>Legacy burn pit</option>
                             <option value="Mechanical Shop" ${row.source === 'Mechanical Shop' ? 'selected' : ''}>Mechanical Shop</option>
                             <option value="Medical X-ray" ${row.source === 'Medical X-ray' ? 'selected' : ''}>Medical X-ray</option>
-                            <option value="Municipal Water Supply" ${row.source === 'Municipal Water Supply' ? 'selected' : ''}>Municipal Water Supply</option>
-                            <option value="Municipal Water System" ${row.source === 'Municipal Water System' ? 'selected' : ''}>Municipal Water System</option>
-                            <option value="Paint Shop" ${row.source === 'Paint Shop' ? 'selected' : ''}>Paint Shop</option>
-                            <option value="Pest Control" ${row.source === 'Pest Control' ? 'selected' : ''}>Pest Control</option>
                             <option value="Satellite comms dish" ${row.source === 'Satellite comms dish' ? 'selected' : ''}>Satellite comms dish</option>
-                            <option value="Warehouse" ${row.source === 'Warehouse' ? 'selected' : ''}>Warehouse</option>
-                            <option value="Welding shop" ${row.source === 'Welding shop' ? 'selected' : ''}>Welding shop</option>
                         </select></td>
                         <td><select data-field="environmentalMedium" data-index="${index}">
                             <option value="">Select Medium</option>
@@ -4078,6 +4599,7 @@
                             <option value="Secondary containment" ${row.existingControls === 'Secondary containment' ? 'selected' : ''}>Secondary containment</option>
                             <option value="Shielding, badges" ${row.existingControls === 'Shielding, badges' ? 'selected' : ''}>Shielding, badges</option>
                             <option value="SOPs, eyewash" ${row.existingControls === 'SOPs, eyewash' ? 'selected' : ''}>SOPs, eyewash</option>
+                            <option value="SOPs, notifications" ${row.existingControls === 'SOPs, notifications' ? 'selected' : ''}>SOPs, notifications</option>
                             <option value="SOPs, spill kits" ${row.existingControls === 'SOPs, spill kits' ? 'selected' : ''}>SOPs, spill kits</option>
                             <option value="Spill pallets" ${row.existingControls === 'Spill pallets' ? 'selected' : ''}>Spill pallets</option>
                             <option value="Stormwater BMPs" ${row.existingControls === 'Stormwater BMPs' ? 'selected' : ''}>Stormwater BMPs</option>
@@ -4095,6 +4617,7 @@
                             <option value="Daily/8 hrs" ${row.frequencyDuration === 'Daily/8 hrs' ? 'selected' : ''}>Daily/8 hrs</option>
                             <option value="Dry season" ${row.frequencyDuration === 'Dry season' ? 'selected' : ''}>Dry season</option>
                             <option value="Legacy source" ${row.frequencyDuration === 'Legacy source' ? 'selected' : ''}>Legacy source</option>
+                            <option value="Monthly" ${row.frequencyDuration === 'Monthly' ? 'selected' : ''}>Monthly</option>
                             <option value="Monthly access" ${row.frequencyDuration === 'Monthly access' ? 'selected' : ''}>Monthly access</option>
                             <option value="Quarterly" ${row.frequencyDuration === 'Quarterly' ? 'selected' : ''}>Quarterly</option>
                             <option value="Rare spills" ${row.frequencyDuration === 'Rare spills' ? 'selected' : ''}>Rare spills</option>
@@ -4337,38 +4860,19 @@
             }
 
             populateFromMapData(hazardData) {
-                if (this.hazardRows.length === 0) {
-                    this.addHazardRow();
-                }
-
-                const normalizedSource = this.normalizeValue(hazardData.display_name || hazardData.hazard_type || hazardData.name || hazardData.Name || '');
+                // Always add a new row at the bottom for each hazard
+                this.addHazardRow();
                 
-                // Prefer updating the row that already contains this hazard (if any)
-                let targetRow = this.hazardRows.find(row => this.normalizeValue(row.source) === normalizedSource);
+                // Get the newly added row (last row)
+                const newRow = this.hazardRows[this.hazardRows.length - 1];
                 
-                // Otherwise use the first empty row
-                if (!targetRow) {
-                    targetRow = this.hazardRows.find(row => !row.source);
-                }
+                // Auto-populate the source field
+                newRow.source = hazardData.display_name || hazardData.hazard_type || hazardData.name || hazardData.Name || '';
+                console.log('[CSM] Auto-populated source field for hazard:', newRow.source);
+
+                    // Update the specific form fields without re-rendering the entire table
+                this.updateFormFields(newRow);
                 
-                // If still no row available, do nothing (user can add a new row manually)
-                if (!targetRow) {
-                    return;
-                }
-
-                // Always populate the source so we compare against consistent text
-                targetRow.source = hazardData.display_name || hazardData.hazard_type || hazardData.name || hazardData.Name || '';
-
-                // Populate severity/probability/risk only when provided as meaningful strings
-                if (typeof hazardData.severity === 'string' && hazardData.severity.trim()) {
-                    targetRow.severity = hazardData.severity;
-                }
-                if (typeof hazardData.risk === 'string' && hazardData.risk.trim()) {
-                    targetRow.risk = hazardData.risk;
-                }
-
-                // Update the specific form fields without re-rendering the entire table
-                this.updateFormFields(targetRow);
                 this.clearFormComparisonHighlights();
             }
 
@@ -4377,20 +4881,11 @@
                 const rowIndex = this.hazardRows.indexOf(targetRow);
                 if (rowIndex === -1) return;
 
-                // Update only the specific fields that were populated from map data
+                // Update only the source field as requested
                 const sourceSelect = document.querySelector(`select[data-field="source"][data-index="${rowIndex}"]`);
-                const severitySelect = document.querySelector(`select[data-field="severity"][data-index="${rowIndex}"]`);
-                const riskSelect = document.querySelector(`select[data-field="risk"][data-index="${rowIndex}"]`);
-
-                // Only update if the field value is different from what's currently selected
                 if (sourceSelect && targetRow.source && sourceSelect.value !== targetRow.source) {
                     sourceSelect.value = targetRow.source;
-                }
-                if (severitySelect && targetRow.severity && severitySelect.value !== targetRow.severity) {
-                    severitySelect.value = targetRow.severity;
-                }
-                if (riskSelect && targetRow.risk && riskSelect.value !== targetRow.risk) {
-                    riskSelect.value = targetRow.risk;
+                    console.log(`[CSM] Updated source field to: ${targetRow.source}`);
                 }
             }
 
@@ -4451,7 +4946,7 @@
                     },
                     {
                         hazardId: 5,
-                        source: 'Municiapl water system',
+                        source: 'Municipal water system',
                         environmentalMedium: 'Surface Water',
                         healthThreat: 'Pathogens, nutrients',
                         exposureRoute: 'Ingestion, Dermal',
@@ -4819,7 +5314,7 @@
                     },
                     {
                         hazardId: 5,
-                        source: 'Municiapl water system',
+                        source: 'Municipal water system',
                         environmentalMedium: 'Surface Water',
                         healthThreat: 'Pathogens, nutrients',
                         exposureRoute: 'Ingestion, Dermal',
@@ -5951,8 +6446,8 @@
                             ${this.hazardRows.map((row, index) => {
                                 const detail = detailMap.get(index);
                                 return `
-                                    <tr style="background: ${index % 2 === 0 ? '#fff5f5' : 'white'};">
-                                        <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
+                                <tr style="background: ${index % 2 === 0 ? '#fff5f5' : 'white'};">
+                                    <td style="padding: 6px; border: 1px solid #dee2e6; text-align: center; font-weight: bold;">${index + 1}</td>
                                         ${this.formFields.map(field => {
                                             const value = row[field] || '';
                                             if (!detail) {
@@ -5995,7 +6490,7 @@
                                                 </td>
                                             `;
                                         }).join('')}
-                                    </tr>
+                                </tr>
                                 `;
                             }).join('')}
                         </tbody>
@@ -6133,7 +6628,7 @@
                     } else if (candidates.length > 1) {
                         referenceRow = this.findBestReferenceMatch(studentRow, candidates, matchingFields);
                     }
-                    
+
                     if (!referenceRow) {
                         results.incorrect++;
                         results.details.push({
@@ -6154,7 +6649,7 @@
                         const studentNormalized = this.normalizeValue(studentValue);
                         const referenceNormalized = this.normalizeValue(referenceValue);
                         const isCorrect = studentNormalized !== '' && studentNormalized === referenceNormalized;
-
+                        
                         if (isCorrect) {
                             rowCorrect++;
                             fieldResults.push({ field, status: 'correct', value: studentValue });
@@ -6356,6 +6851,73 @@
                 if (window.hazardMap) {
                     window.hazardMap.resetProximityCheck();
                 }
+            };
+            
+            // Debug functions
+            window.__listAllPins = () => {
+                console.log('[DEBUG] Listing all hazard pins:');
+                app.viewer.entities.values.forEach(entity => {
+                    if (entity.id && entity.id.startsWith('hazard-pin-')) {
+                        const pos = entity.position.getValue(Cesium.JulianDate.now());
+                        const cartographic = Cesium.Cartographic.fromCartesian(pos);
+                        console.log(`  ${entity.id}: ${Cesium.Math.toDegrees(cartographic.latitude).toFixed(6)}°N, ${Cesium.Math.toDegrees(cartographic.longitude).toFixed(6)}°W, height: ${cartographic.height.toFixed(2)}m`);
+                    }
+                });
+            };
+            
+            window.__testCoordinateConversion = () => {
+                console.log('[DEBUG] Testing coordinate conversion:');
+                const testCoords = [-12465909.864140745, 5030584.463040721];
+                const converted = app.convertWebMercatorToWGS84(testCoords[0], testCoords[1]);
+                console.log(`  Original (EPSG:3857): [${testCoords[0]}, ${testCoords[1]}]`);
+                console.log(`  Converted (WGS84): [${converted[0].toFixed(6)}, ${converted[1].toFixed(6)}]`);
+            };
+            
+            window.__debugClickHandlers = () => {
+                console.log('[DEBUG] Checking click handlers on all pins:');
+                app.viewer.entities.values.forEach(entity => {
+                    if (entity.id && entity.id.startsWith('hazard-pin-')) {
+                        console.log(`  ${entity.id}: clickHandler = ${entity.clickHandler ? 'ATTACHED' : 'MISSING'}`);
+                        if (entity.clickHandler) {
+                            console.log(`    Handler function: ${typeof entity.clickHandler}`);
+                        }
+                    }
+                });
+            };
+            
+            window.__testPinClick = () => {
+                console.log('[DEBUG] Testing pin click manually...');
+                const pins = app.viewer.entities.values.filter(entity => 
+                    entity.id && entity.id.startsWith('hazard-pin-')
+                );
+                if (pins.length > 0) {
+                    const firstPin = pins[0];
+                    console.log(`Testing click on: ${firstPin.id}`);
+                    if (firstPin.clickHandler) {
+                        firstPin.clickHandler(firstPin);
+                    } else {
+                        console.log('No click handler attached to this pin!');
+                    }
+                } else {
+                    console.log('No pins found!');
+                }
+            };
+
+            window.__debugNavigation = () => {
+                console.log('[DEBUG] Navigation State:');
+                console.log('- Current hazard index:', app.currentHazardIndex);
+                console.log('- Hazard data length:', app.hazardData ? app.hazardData.length : 'undefined');
+                console.log('- Current hazard entity:', app.currentHazardEntity);
+                if (app.hazardData && app.hazardData.length > 0) {
+                    console.log('- Current hazard data:', app.hazardData[app.currentHazardIndex]);
+                    console.log('- All hazard IDs:', app.hazardData.map(h => h.properties.hazard_id));
+                }
+                console.log('- All pin entities:', app.viewer.entities.values.filter(e => e.id && e.id.startsWith('hazard-pin-')).map(e => e.id));
+            };
+
+            window.__testNavigation = (direction) => {
+                console.log(`[DEBUG] Testing navigation with direction: ${direction}`);
+                app.navigateToHazard(direction);
             };
         });
     </script>
